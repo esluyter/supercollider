@@ -54,6 +54,7 @@ static void doLoadFactories ()
   QC_ADD_FACTORY( QcSlider2D );
   QC_ADD_FACTORY( QcWaveform );
   QC_ADD_FACTORY( QcTextEdit );
+  QC_ADD_FACTORY( QcCodeEdit );
   QC_ADD_FACTORY( QcTreeWidget );
   QC_ADD_FACTORY( WebView );
   QC_ADD_FACTORY( QcWindow );
