@@ -61,15 +61,7 @@ Highlighter::Highlighter(QTextDocument *parent)
     highlightingRules.append(rule);
   }
 
-  quotationFormat.setForeground(QColor(77, 162, 75));
-  rule.pattern = QRegExp("\".*\"");
-  rule.format = quotationFormat;
-  highlightingRules.append(rule);
 
-  symbolFormat.setForeground(QColor(0, 131, 190));
-  rule.pattern = QRegExp("\'.*\'|(\\s|^)\\\\\\w+\\b");
-  rule.format = symbolFormat;
-  highlightingRules.append(rule);
 
   numberFormat.setForeground(QColor(156, 109, 0));
   rule.pattern = QRegExp("(\\b|((\\s|^)\\-))((\\d+(\\.\\d+)?)|pi|inf)\\b");
@@ -94,6 +86,24 @@ Highlighter::Highlighter(QTextDocument *parent)
   rule.format = functionFormat;
   highlightingRules.append(rule);
 
+  classFormat.setFontWeight(QFont::Bold);
+  classFormat.setForeground(QColor(194, 133, 0));
+  rule.pattern = QRegExp("\\b[A-Z]\\w+\\b");
+  rule.format = classFormat;
+  highlightingRules.append(rule);
+
+
+
+  quotationFormat.setForeground(QColor(77, 162, 75));
+  rule.pattern = QRegExp("\".*\"");
+  rule.format = quotationFormat;
+  highlightingRules.append(rule);
+
+  symbolFormat.setForeground(QColor(0, 131, 190));
+  rule.pattern = QRegExp("\'.*\'|(\\s|^)\\\\\\w+\\b");
+  rule.format = symbolFormat;
+  highlightingRules.append(rule);
+
 
   singleLineCommentFormat.setForeground(QColor(160, 161, 167));
   singleLineCommentFormat.setFontItalic(true);
@@ -101,11 +111,6 @@ Highlighter::Highlighter(QTextDocument *parent)
   rule.format = singleLineCommentFormat;
   highlightingRules.append(rule);
 
-  classFormat.setFontWeight(QFont::Bold);
-  classFormat.setForeground(QColor(194, 133, 0));
-  rule.pattern = QRegExp("\\b[A-Z]\\w+\\b");
-  rule.format = classFormat;
-  highlightingRules.append(rule);
 
   multiLineCommentFormat.setForeground(QColor(160, 161, 167));
   multiLineCommentFormat.setFontItalic(true);
