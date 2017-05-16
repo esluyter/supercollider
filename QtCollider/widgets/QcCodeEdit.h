@@ -53,6 +53,10 @@ private:
     QTextCharFormat singleLineCommentFormat;
     QTextCharFormat multiLineCommentFormat;
     QTextCharFormat quotationFormat;
+    QTextCharFormat symbolFormat;
+    QTextCharFormat numberFormat;
+    QTextCharFormat keyFormat;
+    QTextCharFormat envvarFormat;
     QTextCharFormat functionFormat;
 };
 
