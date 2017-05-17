@@ -49,10 +49,7 @@ Highlighter::Highlighter(QTextDocument *parent)
   keywordFormat.setForeground(QColor(168, 28, 166));
   keywordFormat.setFontWeight(QFont::Bold);
   QStringList keywordPatterns;
-  keywordPatterns << "\\bvar\\b" << "\\barg\\b" << "\\bthis\\b"
-                  << "\\btrue\\b" << "\\bfalse\\b" << "\\bcurrentEnvironment\\b"
-                  << "\\btopEnvironment\\b" << "\\bthisProcess\\b" << "\\bthisThread\\b"
-                  << "\\bthisFunction\\b" << "\\bthisMethod\\b" << "\\bthisCuelist\\b";
+  keywordPatterns << "\\bvar\\b" << "\\barg\\b" << "\\bthis\\b";
 
   for (int i = 0; i < keywordPatterns.size(); i++) {
     QString pattern = keywordPatterns.at(i);
@@ -62,9 +59,23 @@ Highlighter::Highlighter(QTextDocument *parent)
   }
 
 
+  builtinFormat.setForeground(QColor(168, 28, 166));
+  QStringList builtinPatterns;
+  builtinPatterns << "\\bnil\\b" << "\\btrue\\b" << "\\binf\\b" << "\\bfalse\\b" << "\\bcurrentEnvironment\\b"
+                  << "\\btopEnvironment\\b" << "\\bthisProcess\\b" << "\\bthisThread\\b"
+                  << "\\bthisFunction\\b" << "\\bthisMethod\\b" << "\\bthisCuelist\\b";
+
+  for (int i = 0; i < builtinPatterns.size(); i++) {
+    QString pattern = builtinPatterns.at(i);
+    rule.pattern = QRegExp(pattern);
+    rule.format = builtinFormat;
+    highlightingRules.append(rule);
+  }
+
+
 
   numberFormat.setForeground(QColor(156, 109, 0));
-  rule.pattern = QRegExp("(\\b|((\\s|^)\\-))((\\d+(\\.\\d+)?)|pi|inf)\\b");
+  rule.pattern = QRegExp("(\\b|((\\s|^)\\-))((\\d+(\\.\\d+)?)|pi)\\b");
   rule.format = numberFormat;
   highlightingRules.append(rule);
 
@@ -73,22 +84,23 @@ Highlighter::Highlighter(QTextDocument *parent)
   rule.format = envvarFormat;
   highlightingRules.append(rule);
 
-  keyFormat.setForeground(QColor(0, 128, 128));
+  keyFormat.setForeground(QColor(0, 131, 190));
   rule.pattern = QRegExp("(\\w+):");
   rule.format = keyFormat;
   highlightingRules.append(rule);
 
 
-
+/*
   //functionFormat.setFontItalic(true);
   functionFormat.setForeground(QColor(60, 116, 246));
-  rule.pattern = QRegExp("(\\.[a-z]\\w*)|(\\b[a-z]\\w*(?=(\\s*[\\(\\{])))" /*"(?=\\()"*/);
+  rule.pattern = QRegExp("(\\.[a-z]\\w*)|(\\b[a-z]\\w*(?=(\\s*[\\{])))");
   rule.format = functionFormat;
   highlightingRules.append(rule);
+*/
 
-  classFormat.setFontWeight(QFont::Bold);
+  //classFormat.setFontWeight(QFont::Bold);
   classFormat.setForeground(QColor(194, 133, 0));
-  rule.pattern = QRegExp("\\b[A-Z]\\w+\\b");
+  rule.pattern = QRegExp("\\b[A-Z]\\w*\\b");
   rule.format = classFormat;
   highlightingRules.append(rule);
 
@@ -190,7 +202,7 @@ QcCodeEdit::QcCodeEdit() : _interpretSelection(true)
   // line numbers
   lineNumberArea = new LineNumberArea(this);
 
-  highlightColor = QColor(QColor(200, 200, 200));
+  highlightColor = QColor(QColor(240, 240, 241));
 
   highlighter = new Highlighter(document());
 
@@ -212,7 +224,7 @@ int QcCodeEdit::lineNumberAreaWidth()
         ++digits;
     }
 
-    int space = 3 + fontMetrics().width(QLatin1Char('9')) * digits;
+    int space = 12 + fontMetrics().width(QLatin1Char('9')) * digits;
 
     return space;
 }
@@ -250,7 +262,7 @@ void QcCodeEdit::highlightCurrentLine()
 
         QColor lineColor = highlightColor;
 
-        lineColor.setAlpha(50);
+        //lineColor.setAlpha(50);
 
         selection.format.setBackground(lineColor);
         selection.format.setProperty(QTextFormat::FullWidthSelection, true);
@@ -272,18 +284,16 @@ void QcCodeEdit::lineNumberAreaPaintEvent(QPaintEvent *event)
     int top = (int) blockBoundingGeometry(block).translated(contentOffset()).top();
     int bottom = top + (int) blockBoundingRect(block).height();
 
-    QFont font = painter.font() ;
-    /* twice the size than the current font size */
-    font.setPointSize(font.pointSize() * 7 / 8);
-    /* set the modified font to the painter */
-    painter.setFont(font);
+    //QFont font = painter.font() ;
+    //font.setPointSize(font.pointSize() * 7 / 8);
+    //painter.setFont(font);
 
     while (block.isValid() && top <= event->rect().bottom()) {
       if (block.isVisible() && bottom >= event->rect().top()) {
 
           QString number = QString::number(blockNumber + 1);
-          painter.setPen(Qt::black);
-          painter.drawText(0, top + (font.pointSize() / 7 * 3), lineNumberArea->width() - 1, fontMetrics().height(),
+          painter.setPen(QColor(189, 190, 192));
+          painter.drawText(0, top, lineNumberArea->width() - 4, fontMetrics().height(),
                            Qt::AlignRight, number);
       }
 
