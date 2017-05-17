@@ -90,18 +90,23 @@ Highlighter::Highlighter(QTextDocument *parent)
   highlightingRules.append(rule);
 
 
-/*
+
   //functionFormat.setFontItalic(true);
   functionFormat.setForeground(QColor(60, 116, 246));
-  rule.pattern = QRegExp("(\\.[a-z]\\w*)|(\\b[a-z]\\w*(?=(\\s*[\\{])))");
+  rule.pattern = QRegExp("(\\.[a-z]\\w*)|(\\b[a-z]\\w*(?=(\\s*[\\(\\{])))");
   rule.format = functionFormat;
   highlightingRules.append(rule);
-*/
+
 
   //classFormat.setFontWeight(QFont::Bold);
   classFormat.setForeground(QColor(194, 133, 0));
   rule.pattern = QRegExp("\\b[A-Z]\\w*\\b");
   rule.format = classFormat;
+  highlightingRules.append(rule);
+
+  punctuationFormat.setForeground(QColor(90, 108, 126));
+  rule.pattern = QRegExp("[<>\\&\\{\\}\\(\\)\\[\\]\\.\\,\\;:!\\=\\+\\-\\*\\/\\%\\|]");
+  rule.format = punctuationFormat;
   highlightingRules.append(rule);
 
 
@@ -112,7 +117,7 @@ Highlighter::Highlighter(QTextDocument *parent)
   highlightingRules.append(rule);
 
   symbolFormat.setForeground(QColor(0, 131, 190));
-  rule.pattern = QRegExp("\'.*\'|(\\s|^)\\\\\\w+\\b");
+  rule.pattern = QRegExp("\'.*\'|\\\\\\w+\\b");
   rule.format = symbolFormat;
   highlightingRules.append(rule);
 
@@ -284,15 +289,17 @@ void QcCodeEdit::lineNumberAreaPaintEvent(QPaintEvent *event)
     int top = (int) blockBoundingGeometry(block).translated(contentOffset()).top();
     int bottom = top + (int) blockBoundingRect(block).height();
 
-    //QFont font = painter.font() ;
-    //font.setPointSize(font.pointSize() * 7 / 8);
-    //painter.setFont(font);
+    int curLine = textCursor().blockNumber();
 
     while (block.isValid() && top <= event->rect().bottom()) {
       if (block.isVisible() && bottom >= event->rect().top()) {
 
           QString number = QString::number(blockNumber + 1);
           painter.setPen(QColor(189, 190, 192));
+          if (blockNumber == curLine) {
+            painter.fillRect(QRect(0, top, lineNumberArea->width(), bottom - top), QColor(230, 230, 230));
+            painter.setPen(QColor(56, 58, 66));
+          };
           painter.drawText(0, top, lineNumberArea->width() - 4, fontMetrics().height(),
                            Qt::AlignRight, number);
       }

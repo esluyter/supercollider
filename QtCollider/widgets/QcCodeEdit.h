@@ -59,6 +59,7 @@ private:
     QTextCharFormat keyFormat;
     QTextCharFormat envvarFormat;
     QTextCharFormat functionFormat;
+    QTextCharFormat punctuationFormat;
 };
 
 class QcCodeEdit : public QPlainTextEdit, QcHelper
