@@ -152,6 +152,7 @@ class QcCodeEdit : public QPlainTextEdit, QcHelper
     void updateLineNumberAreaWidth(int newBlockCount);
     void highlightCurrentLine();
     void updateLineNumberArea(const QRect &, int);
+    void formatSelection();
 
   protected:
     virtual void keyPressEvent( QKeyEvent * );

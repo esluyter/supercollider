@@ -287,9 +287,22 @@ QcCodeEdit::QcCodeEdit() : _interpretSelection(true)
   connect(this, SIGNAL(blockCountChanged(int)), this, SLOT(updateLineNumberAreaWidth(int)));
   connect(this, SIGNAL(updateRequest(QRect,int)), this, SLOT(updateLineNumberArea(QRect,int)));
   connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(highlightCurrentLine()));
+  //connect(this, SIGNAL(selectionChanged()), this, SLOT(formatSelection()));
+
+
 
   updateLineNumberAreaWidth(0);
   highlightCurrentLine();
+}
+
+void QcCodeEdit::formatSelection()
+{
+  /*
+  QTextCharFormat format;
+  format.setProperty(QTextFormat::FullWidthSelection, true);
+  format.setFontWeight(QFont::Bold);
+  textCursor().mergeCharFormat(format);
+  */
 }
 
 
