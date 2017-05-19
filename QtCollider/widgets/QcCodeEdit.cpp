@@ -44,13 +44,48 @@ QC_DECLARE_FACTORY( QcCodeEdit, QcCodeEditFactory );
 Highlighter::Highlighter(QTextDocument *parent)
     : QSyntaxHighlighter(parent)
 {
-  HighlightingRule rule;
 
   keywordFormat.setForeground(QColor(168, 28, 166));
   keywordFormat.setFontWeight(QFont::Bold);
+
+  builtinFormat.setForeground(QColor(168, 28, 166));
+
+  numberFormat.setForeground(QColor(156, 109, 0));
+
+  envvarFormat.setForeground(QColor(230, 85, 68));
+
+  keyFormat.setForeground(QColor(0, 131, 190));
+
+  //functionFormat.setFontItalic(true);
+  functionFormat.setForeground(QColor(60, 116, 246));
+
+  //classFormat.setFontWeight(QFont::Bold);
+  classFormat.setForeground(QColor(194, 133, 0));
+
+  punctuationFormat.setForeground(QColor(90, 108, 126));
+
+  quotationFormat.setForeground(QColor(77, 162, 75));
+
+  symbolFormat.setForeground(QColor(0, 131, 190));
+
+  singleLineCommentFormat.setForeground(QColor(160, 161, 167));
+  singleLineCommentFormat.setFontItalic(true);
+  multiLineCommentFormat.setForeground(QColor(160, 161, 167));
+  multiLineCommentFormat.setFontItalic(true);
+
+  commentStartExpression = QRegExp("/\\*");
+  commentEndExpression = QRegExp("\\*/");
+
+  buildRules();
+}
+
+void Highlighter::buildRules()
+{
+  HighlightingRule rule;
+  highlightingRules.clear();
+
   QStringList keywordPatterns;
   keywordPatterns << "\\bvar\\b" << "\\barg\\b" << "\\bthis\\b";
-
   for (int i = 0; i < keywordPatterns.size(); i++) {
     QString pattern = keywordPatterns.at(i);
     rule.pattern = QRegExp(pattern);
@@ -58,13 +93,10 @@ Highlighter::Highlighter(QTextDocument *parent)
     highlightingRules.append(rule);
   }
 
-
-  builtinFormat.setForeground(QColor(168, 28, 166));
   QStringList builtinPatterns;
   builtinPatterns << "\\bnil\\b" << "\\btrue\\b" << "\\binf\\b" << "\\bfalse\\b" << "\\bcurrentEnvironment\\b"
                   << "\\btopEnvironment\\b" << "\\bthisProcess\\b" << "\\bthisThread\\b"
                   << "\\bthisFunction\\b" << "\\bthisMethod\\b" << "\\bthisCuelist\\b";
-
   for (int i = 0; i < builtinPatterns.size(); i++) {
     QString pattern = builtinPatterns.at(i);
     rule.pattern = QRegExp(pattern);
@@ -72,68 +104,41 @@ Highlighter::Highlighter(QTextDocument *parent)
     highlightingRules.append(rule);
   }
 
-
-
-  numberFormat.setForeground(QColor(156, 109, 0));
-  rule.pattern = QRegExp("(\\b|((\\s|^)\\-))((\\d+(\\.\\d+)?)|pi)\\b");
-  rule.format = numberFormat;
-  highlightingRules.append(rule);
-
-  envvarFormat.setForeground(QColor(230, 85, 68));
   rule.pattern = QRegExp("\\~\\w+");
   rule.format = envvarFormat;
   highlightingRules.append(rule);
 
-  keyFormat.setForeground(QColor(0, 131, 190));
   rule.pattern = QRegExp("(\\w+):");
   rule.format = keyFormat;
   highlightingRules.append(rule);
 
-
-
-  //functionFormat.setFontItalic(true);
-  functionFormat.setForeground(QColor(60, 116, 246));
   rule.pattern = QRegExp("(\\.[a-z]\\w*)|(\\b[a-z]\\w*(?=(\\s*[\\(\\{])))");
   rule.format = functionFormat;
   highlightingRules.append(rule);
 
-
-  //classFormat.setFontWeight(QFont::Bold);
-  classFormat.setForeground(QColor(194, 133, 0));
   rule.pattern = QRegExp("\\b[A-Z]\\w*\\b");
   rule.format = classFormat;
   highlightingRules.append(rule);
 
-  punctuationFormat.setForeground(QColor(90, 108, 126));
   rule.pattern = QRegExp("[<>\\&\\{\\}\\(\\)\\[\\]\\.\\,\\;:!\\=\\+\\-\\*\\/\\%\\|]");
   rule.format = punctuationFormat;
   highlightingRules.append(rule);
 
+  rule.pattern = QRegExp("(\\b|((\\s|^)\\-))((\\d+(\\.\\d+)?)|pi)\\b");
+  rule.format = numberFormat;
+  highlightingRules.append(rule);
 
-
-  quotationFormat.setForeground(QColor(77, 162, 75));
-  rule.pattern = QRegExp("\".*\"");
+  rule.pattern = QRegExp("\"(?:[^\"\\\\]|\\\\.)*\"");
   rule.format = quotationFormat;
   highlightingRules.append(rule);
 
-  symbolFormat.setForeground(QColor(0, 131, 190));
   rule.pattern = QRegExp("\'.*\'|\\\\\\w+\\b");
   rule.format = symbolFormat;
   highlightingRules.append(rule);
 
-
-  singleLineCommentFormat.setForeground(QColor(160, 161, 167));
-  singleLineCommentFormat.setFontItalic(true);
   rule.pattern = QRegExp("//[^\n]*");
   rule.format = singleLineCommentFormat;
   highlightingRules.append(rule);
-
-
-  multiLineCommentFormat.setForeground(QColor(160, 161, 167));
-  multiLineCommentFormat.setFontItalic(true);
-
-  commentStartExpression = QRegExp("/\\*");
-  commentEndExpression = QRegExp("\\*/");
 }
 
 void Highlighter::highlightBlock(const QString &text)
@@ -170,10 +175,75 @@ void Highlighter::highlightBlock(const QString &text)
   }
 }
 
+void Highlighter::setBuiltinColor(const QColor &color)
+{
+  builtinFormat.setForeground(color);
+  buildRules();
+  rehighlight();
+}
 
+void Highlighter::setKeywordColor(const QColor &color)
+{
+  keywordFormat.setForeground(color);
+  buildRules();
+  rehighlight();
+}
 
+void Highlighter::setNumberColor(const QColor &color)
+{
+  numberFormat.setForeground(color);
+  buildRules();
+  rehighlight();
+}
 
+void Highlighter::setEnvvarColor(const QColor &color)
+{
+  envvarFormat.setForeground(color);
+}
 
+void Highlighter::setSymbolColor(const QColor &color)
+{
+  keyFormat.setForeground(color);
+  symbolFormat.setForeground(color);
+  buildRules();
+  rehighlight();
+}
+
+void Highlighter::setMethodColor(const QColor &color)
+{
+  functionFormat.setForeground(color);
+  buildRules();
+  rehighlight();
+}
+
+void Highlighter::setClassColor(const QColor &color)
+{
+  classFormat.setForeground(color);
+  buildRules();
+  rehighlight();
+}
+
+void Highlighter::setPunctuationColor(const QColor &color)
+{
+  punctuationFormat.setForeground(color);
+  buildRules();
+  rehighlight();
+}
+
+void Highlighter::setStringColor(const QColor &color)
+{
+  quotationFormat.setForeground(color);
+  buildRules();
+  rehighlight();
+}
+
+void Highlighter::setCommentColor(const QColor &color)
+{
+  singleLineCommentFormat.setForeground(color);
+  multiLineCommentFormat.setForeground(color);
+  buildRules();
+  rehighlight();
+}
 
 class LineNumberArea : public QWidget
 {
@@ -207,7 +277,10 @@ QcCodeEdit::QcCodeEdit() : _interpretSelection(true)
   // line numbers
   lineNumberArea = new LineNumberArea(this);
 
-  highlightColor = QColor(QColor(240, 240, 241));
+  highlightColor = QColor(240, 240, 241);
+  lineNumberColor = QColor(189, 190, 192);
+  lineNumberSelColor = QColor(56, 58, 66);
+  lineNumberSelBg = QColor(230, 230, 230);
 
   highlighter = new Highlighter(document());
 
@@ -295,10 +368,10 @@ void QcCodeEdit::lineNumberAreaPaintEvent(QPaintEvent *event)
       if (block.isVisible() && bottom >= event->rect().top()) {
 
           QString number = QString::number(blockNumber + 1);
-          painter.setPen(QColor(189, 190, 192));
+          painter.setPen(lineNumberColor);
           if (blockNumber == curLine) {
-            painter.fillRect(QRect(0, top, lineNumberArea->width(), bottom - top), QColor(230, 230, 230));
-            painter.setPen(QColor(56, 58, 66));
+            painter.fillRect(QRect(0, top, lineNumberArea->width(), bottom - top), lineNumberSelBg);
+            painter.setPen(lineNumberSelColor);
           };
           painter.drawText(0, top, lineNumberArea->width() - 4, fontMetrics().height(),
                            Qt::AlignRight, number);
@@ -397,6 +470,73 @@ void QcCodeEdit::setHighlightColor( const QColor &color )
   highlightColor = color;
   highlightCurrentLine();
 }
+
+void QcCodeEdit::setLineNumberColor( const QColor &color )
+{
+  lineNumberColor = color;
+}
+
+void QcCodeEdit::setLineNumberSelColor( const QColor &color )
+{
+  lineNumberSelColor = color;
+}
+
+void QcCodeEdit::setLineNumberSelBg( const QColor &color )
+{
+  lineNumberSelBg = color;
+}
+
+
+void QcCodeEdit::setBuiltinColor( const QColor &color )
+{
+  highlighter->setBuiltinColor( color );
+}
+
+void QcCodeEdit::setKeywordColor( const QColor &color )
+{
+  highlighter->setKeywordColor( color );
+}
+
+void QcCodeEdit::setNumberColor( const QColor &color )
+{
+  highlighter->setNumberColor( color );
+}
+
+void QcCodeEdit::setEnvvarColor( const QColor &color )
+{
+  highlighter->setEnvvarColor( color );
+}
+
+void QcCodeEdit::setSymbolColor( const QColor &color )
+{
+  highlighter->setSymbolColor( color );
+}
+
+void QcCodeEdit::setMethodColor( const QColor &color )
+{
+  highlighter->setMethodColor( color );
+}
+
+void QcCodeEdit::setClassColor( const QColor &color )
+{
+  highlighter->setClassColor( color );
+}
+
+void QcCodeEdit::setPunctuationColor( const QColor &color )
+{
+  highlighter->setPunctuationColor( color );
+}
+
+void QcCodeEdit::setStringColor( const QColor &color )
+{
+  highlighter->setStringColor( color );
+}
+
+void QcCodeEdit::setCommentColor( const QColor &color )
+{
+  highlighter->setCommentColor( color );
+}
+
 
 void QcCodeEdit::setRangeColor( const QVariantList &list )
 {
