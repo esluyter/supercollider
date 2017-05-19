@@ -33,11 +33,23 @@ class Highlighter : public QSyntaxHighlighter
 
 public:
     Highlighter(QTextDocument *parent = 0);
+    void setBuiltinColor(const QColor &);
+    void setKeywordColor( const QColor & );
+    void setNumberColor( const QColor & );
+    void setEnvvarColor( const QColor & );
+    void setSymbolColor( const QColor & );
+    void setMethodColor( const QColor & );
+    void setClassColor( const QColor & );
+    void setPunctuationColor( const QColor & );
+    void setStringColor( const QColor & );
+    void setCommentColor( const QColor & );
 
 protected:
     void highlightBlock(const QString &text) override;
 
 private:
+    void buildRules();
+
     struct HighlightingRule
     {
         QRegExp pattern;
@@ -73,6 +85,19 @@ class QcCodeEdit : public QPlainTextEdit, QcHelper
   Q_PROPERTY( QFont textFont READ dummyFont WRITE setTextFont );
   Q_PROPERTY( QColor textColor READ dummyColor WRITE setTextColor );
   Q_PROPERTY( QColor highlightColor READ dummyColor WRITE setHighlightColor );
+  Q_PROPERTY( QColor lineNumberColor READ dummyColor WRITE setLineNumberColor );
+  Q_PROPERTY( QColor lineNumberSelColor READ dummyColor WRITE setLineNumberSelColor );
+  Q_PROPERTY( QColor lineNumberSelBgColor READ dummyColor WRITE setLineNumberSelBg );
+  Q_PROPERTY( QColor builtinColor READ dummyColor WRITE setBuiltinColor );
+  Q_PROPERTY( QColor keywordColor READ dummyColor WRITE setKeywordColor );
+  Q_PROPERTY( QColor numberColor READ dummyColor WRITE setNumberColor );
+  Q_PROPERTY( QColor envvarColor READ dummyColor WRITE setEnvvarColor );
+  Q_PROPERTY( QColor symbolColor READ dummyColor WRITE setSymbolColor );
+  Q_PROPERTY( QColor methodColor READ dummyColor WRITE setMethodColor );
+  Q_PROPERTY( QColor classColor READ dummyColor WRITE setClassColor );
+  Q_PROPERTY( QColor punctuationColor READ dummyColor WRITE setPunctuationColor );
+  Q_PROPERTY( QColor stringColor READ dummyColor WRITE setStringColor );
+  Q_PROPERTY( QColor commentColor READ dummyColor WRITE setCommentColor );
   Q_PROPERTY( QVariantList rangeColor
               READ dummyVariantList WRITE setRangeColor );
   Q_PROPERTY( QVariantList rangeFont
@@ -81,6 +106,7 @@ class QcCodeEdit : public QPlainTextEdit, QcHelper
               READ dummyVariantList WRITE setRangeText );
   Q_PROPERTY( bool enterInterpretsSelection
               READ interpretSelection WRITE setInterpretSelection );
+
 
   public:
     QcCodeEdit();
@@ -100,6 +126,19 @@ class QcCodeEdit : public QPlainTextEdit, QcHelper
     void setRangeColor( const QVariantList & );
     void setRangeFont( const QVariantList & );
     void setRangeText( const QVariantList & );
+    void setBuiltinColor( const QColor & ); // for syntax hiliting
+    void setKeywordColor( const QColor & );
+    void setNumberColor( const QColor & );
+    void setEnvvarColor( const QColor & );
+    void setSymbolColor( const QColor & );
+    void setMethodColor( const QColor & );
+    void setClassColor( const QColor & );
+    void setPunctuationColor( const QColor & );
+    void setStringColor( const QColor & );
+    void setCommentColor( const QColor & );
+    void setLineNumberColor( const QColor & );
+    void setLineNumberSelColor( const QColor & );
+    void setLineNumberSelBg( const QColor & );
 
     // line numbers
     void lineNumberAreaPaintEvent(QPaintEvent *event);
@@ -128,6 +167,9 @@ class QcCodeEdit : public QPlainTextEdit, QcHelper
     bool _interpretSelection;
 
     QColor highlightColor;
+    QColor lineNumberColor;
+    QColor lineNumberSelColor;
+    QColor lineNumberSelBg;
 
     // line numbers
     QWidget *lineNumberArea;
