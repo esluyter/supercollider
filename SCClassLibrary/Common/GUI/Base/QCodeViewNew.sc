@@ -3,6 +3,15 @@ CodeViewNew : QAbstractScroll {
 
 	*qtClass { ^'QcCodeEdit' }
 
+	*new { |parent, bounds|
+    ^super.new(parent, bounds).init;
+  }
+
+	init {
+		this.font_(Font.monospace);
+		^this;
+	}
+
 	enterInterpretsSelection { ^this.getProperty( \enterInterpretsSelection ); }
 
 	enterInterpretsSelection_ { arg bool;

@@ -139,6 +139,11 @@ void Highlighter::buildRules()
   rule.pattern = QRegExp("//[^\n]*");
   rule.format = singleLineCommentFormat;
   highlightingRules.append(rule);
+
+  for (int i = 0; i < customRules.size(); i++) {
+    rule = customRules.at(i);
+    highlightingRules.append(rule);
+  }
 }
 
 void Highlighter::highlightBlock(const QString &text)
@@ -244,6 +249,27 @@ void Highlighter::setCommentColor(const QColor &color)
   buildRules();
   rehighlight();
 }
+
+void Highlighter::setCustomColor(const QString &string, const QColor &color)
+{
+  HighlightingRule rule;
+  QTextCharFormat format;
+  format.setForeground(color);
+  rule.pattern = QRegExp(string);
+  rule.format = format;
+  customRules.append(rule);
+  buildRules();
+  rehighlight();
+}
+
+void Highlighter::clearCustomColors()
+{
+  customRules.clear();
+  buildRules();
+  rehighlight();
+}
+
+
 
 class LineNumberArea : public QWidget
 {
@@ -548,6 +574,20 @@ void QcCodeEdit::setStringColor( const QColor &color )
 void QcCodeEdit::setCommentColor( const QColor &color )
 {
   highlighter->setCommentColor( color );
+}
+
+
+void QcCodeEdit::setUserColor( const QVariantList & list )
+{
+  if (list.count() < 2) return;
+  QString regex = list[0].value<QString>();
+  QColor color = list[1].value<QColor>();
+  highlighter->setCustomColor(regex, color);
+}
+
+void QcCodeEdit::clearUserColors( const QVariantList & list )
+{
+  highlighter->clearCustomColors();
 }
 
 

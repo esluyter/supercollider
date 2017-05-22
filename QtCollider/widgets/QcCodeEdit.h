@@ -43,6 +43,8 @@ public:
     void setPunctuationColor( const QColor & );
     void setStringColor( const QColor & );
     void setCommentColor( const QColor & );
+    void setCustomColor( const QString &, const QColor & );
+    void clearCustomColors();
 
 protected:
     void highlightBlock(const QString &text) override;
@@ -72,6 +74,8 @@ private:
     QTextCharFormat envvarFormat;
     QTextCharFormat functionFormat;
     QTextCharFormat punctuationFormat;
+
+    QVector<HighlightingRule> customRules;
 };
 
 class QcCodeEdit : public QPlainTextEdit, QcHelper
@@ -83,6 +87,7 @@ class QcCodeEdit : public QPlainTextEdit, QcHelper
   Q_PROPERTY( QString selectedString READ selectedString WRITE replaceSelectedText );
   Q_PROPERTY( QString currentLine READ currentLine );
   Q_PROPERTY( QFont textFont READ dummyFont WRITE setTextFont );
+
   Q_PROPERTY( QColor textColor READ dummyColor WRITE setTextColor );
   Q_PROPERTY( QColor highlightColor READ dummyColor WRITE setHighlightColor );
   Q_PROPERTY( QColor lineNumberColor READ dummyColor WRITE setLineNumberColor );
@@ -98,6 +103,9 @@ class QcCodeEdit : public QPlainTextEdit, QcHelper
   Q_PROPERTY( QColor punctuationColor READ dummyColor WRITE setPunctuationColor );
   Q_PROPERTY( QColor stringColor READ dummyColor WRITE setStringColor );
   Q_PROPERTY( QColor commentColor READ dummyColor WRITE setCommentColor );
+  Q_PROPERTY( QVariantList userColor READ dummyVariantList WRITE setUserColor );
+  Q_PROPERTY( QVariantList clearUserColors READ dummyVariantList WRITE clearUserColors );
+
   Q_PROPERTY( QVariantList rangeColor
               READ dummyVariantList WRITE setRangeColor );
   Q_PROPERTY( QVariantList rangeFont
@@ -136,6 +144,8 @@ class QcCodeEdit : public QPlainTextEdit, QcHelper
     void setPunctuationColor( const QColor & );
     void setStringColor( const QColor & );
     void setCommentColor( const QColor & );
+    void setUserColor( const QVariantList & );
+    void clearUserColors( const QVariantList & );
     void setLineNumberColor( const QColor & );
     void setLineNumberSelColor( const QColor & );
     void setLineNumberSelBg( const QColor & );
