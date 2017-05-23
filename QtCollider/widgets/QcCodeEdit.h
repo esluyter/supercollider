@@ -44,6 +44,7 @@ public:
     void setStringColor( const QColor & );
     void setCommentColor( const QColor & );
     void setCustomColor( const QString &, const QColor & );
+    void setCustomCommentColor( const QString &, const QColor & );
     void clearCustomColors();
 
 protected:
@@ -76,6 +77,7 @@ private:
     QTextCharFormat punctuationFormat;
 
     QVector<HighlightingRule> customRules;
+    QVector<HighlightingRule> customCommentRules;
 };
 
 class QcCodeEdit : public QPlainTextEdit, QcHelper
@@ -104,6 +106,7 @@ class QcCodeEdit : public QPlainTextEdit, QcHelper
   Q_PROPERTY( QColor stringColor READ dummyColor WRITE setStringColor );
   Q_PROPERTY( QColor commentColor READ dummyColor WRITE setCommentColor );
   Q_PROPERTY( QVariantList userColor READ dummyVariantList WRITE setUserColor );
+  Q_PROPERTY( QVariantList userCommentColor READ dummyVariantList WRITE setUserCommentColor );
   Q_PROPERTY( QVariantList clearUserColors READ dummyVariantList WRITE clearUserColors );
 
   Q_PROPERTY( QVariantList rangeColor
@@ -145,6 +148,7 @@ class QcCodeEdit : public QPlainTextEdit, QcHelper
     void setStringColor( const QColor & );
     void setCommentColor( const QColor & );
     void setUserColor( const QVariantList & );
+    void setUserCommentColor( const QVariantList & );
     void clearUserColors( const QVariantList & );
     void setLineNumberColor( const QColor & );
     void setLineNumberSelColor( const QColor & );

@@ -148,18 +148,18 @@ void Highlighter::buildRules()
 
 void Highlighter::highlightBlock(const QString &text)
 {
-    for (int i = 0; i < highlightingRules.size(); i++) {
-      HighlightingRule rule = highlightingRules.at(i);
-        QRegExp expression(rule.pattern);
-        int index = expression.indexIn(text);
-        while (index >= 0) {
-            int length = expression.matchedLength();
-            setFormat(index, length, rule.format);
-            index = expression.indexIn(text, index + length);
-        }
+  for (int i = 0; i < highlightingRules.size(); i++) {
+    HighlightingRule rule = highlightingRules.at(i);
+    QRegExp expression(rule.pattern);
+    int index = expression.indexIn(text);
+    while (index >= 0) {
+      int length = expression.matchedLength();
+      setFormat(index, length, rule.format);
+      index = expression.indexIn(text, index + length);
     }
+  }
 
-    setCurrentBlockState(0);
+  setCurrentBlockState(0);
 
   int startIndex = 0;
   if (previousBlockState() != 1)
@@ -169,13 +169,25 @@ void Highlighter::highlightBlock(const QString &text)
     int endIndex = commentEndExpression.indexIn(text, startIndex);
     int commentLength;
     if (endIndex == -1) {
-       setCurrentBlockState(1);
-       commentLength = text.length() - startIndex;
+      setCurrentBlockState(1);
+      commentLength = text.length() - startIndex;
     } else {
-       commentLength = endIndex - startIndex
+      commentLength = endIndex - startIndex
                        + commentEndExpression.matchedLength();
     }
     setFormat(startIndex, commentLength, multiLineCommentFormat);
+
+    for (int i = 0; i < customCommentRules.size(); i++) {
+      HighlightingRule rule = customCommentRules.at(i);
+      QRegExp expression(rule.pattern);
+      int index = expression.indexIn(text, startIndex);
+      while (index >= 0 && (endIndex == -1 || index < endIndex)) {
+        int length = expression.matchedLength();
+        setFormat(index, length, rule.format);
+        index = expression.indexIn(text, index + length);
+      }
+    }
+
     startIndex = commentStartExpression.indexIn(text, startIndex + commentLength);
   }
 }
@@ -262,9 +274,23 @@ void Highlighter::setCustomColor(const QString &string, const QColor &color)
   rehighlight();
 }
 
+void Highlighter::setCustomCommentColor(const QString &string, const QColor &color)
+{
+  HighlightingRule rule;
+  QTextCharFormat format;
+  format.setForeground(color);
+  format.setFontItalic(true);
+  rule.pattern = QRegExp(string);
+  rule.format = format;
+  customCommentRules.append(rule);
+  buildRules();
+  rehighlight();
+}
+
 void Highlighter::clearCustomColors()
 {
   customRules.clear();
+  customCommentRules.clear();
   buildRules();
   rehighlight();
 }
@@ -583,6 +609,14 @@ void QcCodeEdit::setUserColor( const QVariantList & list )
   QString regex = list[0].value<QString>();
   QColor color = list[1].value<QColor>();
   highlighter->setCustomColor(regex, color);
+}
+
+void QcCodeEdit::setUserCommentColor( const QVariantList & list )
+{
+  if (list.count() < 2) return;
+  QString regex = list[0].value<QString>();
+  QColor color = list[1].value<QColor>();
+  highlighter->setCustomCommentColor(regex, color);
 }
 
 void QcCodeEdit::clearUserColors( const QVariantList & list )
