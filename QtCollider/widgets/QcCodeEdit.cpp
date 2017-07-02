@@ -342,6 +342,8 @@ QcCodeEdit::QcCodeEdit() : _interpretSelection(true)
   //connect(this, SIGNAL(selectionChanged()), this, SLOT(formatSelection()));
 
 
+  setCursorWidth(2);
+
 
   updateLineNumberAreaWidth(0);
   highlightCurrentLine();
@@ -367,7 +369,7 @@ int QcCodeEdit::lineNumberAreaWidth()
         ++digits;
     }
 
-    int space = 12 + fontMetrics().width(QLatin1Char('9')) * digits;
+    int space = 24 + fontMetrics().width(QLatin1Char('9')) * digits;
 
     return space;
 }
@@ -382,7 +384,8 @@ void QcCodeEdit::updateLineNumberArea(const QRect &rect, int dy)
     if (dy)
         lineNumberArea->scroll(0, dy);
     else
-        lineNumberArea->update(0, rect.y(), lineNumberArea->width(), rect.height());
+        lineNumberArea->update();
+        //lineNumberArea->update(0, rect.y(), lineNumberArea->width(), rect.height());
 
     if (rect.contains(viewport()->rect()))
         updateLineNumberAreaWidth(0);
@@ -405,12 +408,16 @@ void QcCodeEdit::highlightCurrentLine()
 
         QColor lineColor = highlightColor;
 
+        QTextCursor cursor = textCursor();
+        cursor.movePosition(QTextCursor::StartOfBlock);
+        cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+
         //lineColor.setAlpha(50);
 
         selection.format.setBackground(lineColor);
         selection.format.setProperty(QTextFormat::FullWidthSelection, true);
-        selection.cursor = textCursor();
-        selection.cursor.clearSelection();
+        selection.cursor = cursor;
+        //selection.cursor.clearSelection();
         extraSelections.append(selection);
     }
 
@@ -420,7 +427,12 @@ void QcCodeEdit::highlightCurrentLine()
 void QcCodeEdit::lineNumberAreaPaintEvent(QPaintEvent *event)
 {
     QPainter painter(lineNumberArea);
-    painter.fillRect(event->rect(), highlightColor);
+    painter.setClipping(false);
+    painter.fillRect(event->rect(), this->palette().color(QPalette::Base));
+
+    QFont font = painter.font();
+    QFont smallfont = painter.font();
+    smallfont.setPixelSize(fontMetrics().height() / 2);
 
     QTextBlock block = firstVisibleBlock();
     int blockNumber = block.blockNumber();
@@ -429,17 +441,28 @@ void QcCodeEdit::lineNumberAreaPaintEvent(QPaintEvent *event)
 
     int curLine = textCursor().blockNumber();
 
-    while (block.isValid() && top <= event->rect().bottom()) {
-      if (block.isVisible() && bottom >= event->rect().top()) {
+    while (block.isValid() /*&& top <= event->rect().bottom()*/) {
+      if (block.isVisible() /*&& bottom >= event->rect().top()*/) {
 
           QString number = QString::number(blockNumber + 1);
-          painter.setPen(lineNumberColor);
+          QString dot = "∙";
+
           if (blockNumber == curLine) {
-            painter.fillRect(QRect(0, top, lineNumberArea->width(), bottom - top), lineNumberSelBg);
+            //painter.fillRect(QRect(0, top, lineNumberArea->width(), bottom - top), lineNumberSelBg);
             painter.setPen(lineNumberSelColor);
-          };
-          painter.drawText(0, top, lineNumberArea->width() - 4, fontMetrics().height(),
+          } else {
+            //painter.fillRect(QRect(0, top, lineNumberArea->width(), bottom - top), highlightColor);
+            painter.setPen(lineNumberColor);
+          }
+          painter.setFont(font);
+          painter.drawText(0, top, lineNumberArea->width() - 14, fontMetrics().height(),
                            Qt::AlignRight, number);
+          painter.setPen(lineNumberColor);
+          painter.setFont(smallfont);
+          for (int i = 1; i < block.lineCount(); i++) {
+            painter.drawText(0, top + i * fontMetrics().height() + (fontMetrics().height()) / 4, lineNumberArea->width() - 14 - fontMetrics().height() / 10, fontMetrics().height(),
+                             Qt::AlignRight, dot);
+          }
       }
 
       block = block.next();
