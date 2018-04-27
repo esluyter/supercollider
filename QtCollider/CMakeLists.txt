@@ -55,6 +55,7 @@ set( QT_COLLIDER_HDRS
   ${QT_COLLIDER_DIR}/widgets/QcKnob.hpp
   ${QT_COLLIDER_DIR}/widgets/QcTextEdit.h
   ${QT_COLLIDER_DIR}/widgets/QcCodeEdit.h
+  ${QT_COLLIDER_DIR}/widgets/QcPostView.h
   ${QT_COLLIDER_DIR}/widgets/QcLog.h
   ${QT_COLLIDER_DIR}/widgets/QcScope.h
   ${QT_COLLIDER_DIR}/widgets/QcScopeShm.h
@@ -109,6 +110,7 @@ set( QT_COLLIDER_SRCS
   ${QT_COLLIDER_DIR}/widgets/QcKnob.cpp
   ${QT_COLLIDER_DIR}/widgets/QcTextEdit.cpp
   ${QT_COLLIDER_DIR}/widgets/QcCodeEdit.cpp
+  ${QT_COLLIDER_DIR}/widgets/QcPostView.cpp
   ${QT_COLLIDER_DIR}/widgets/QcLog.cpp
   ${QT_COLLIDER_DIR}/widgets/QcScope.cpp
   ${QT_COLLIDER_DIR}/widgets/QcScopeShm.cpp
