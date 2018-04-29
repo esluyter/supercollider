@@ -33,18 +33,11 @@ class PostHighlighter : public QSyntaxHighlighter
 
 public:
     PostHighlighter(QTextDocument *parent = 0);
-    void setBuiltinColor(const QColor &);
-    void setKeywordColor( const QColor & );
-    void setNumberColor( const QColor & );
-    void setEnvvarColor( const QColor & );
-    void setSymbolColor( const QColor & );
-    void setMethodColor( const QColor & );
-    void setClassColor( const QColor & );
-    void setPunctuationColor( const QColor & );
-    void setStringColor( const QColor & );
-    void setCommentColor( const QColor & );
+    void setSuccessColor(const QColor &);
+    void setWarningColor( const QColor & );
+    void setErrorColor( const QColor & );
+
     void setCustomColor( const QString &, const QColor & );
-    void setCustomCommentColor( const QString &, const QColor & );
     void clearCustomColors();
 
 protected:
@@ -63,21 +56,11 @@ private:
     QRegExp commentStartExpression;
     QRegExp commentEndExpression;
 
-    QTextCharFormat keywordFormat;
-    QTextCharFormat builtinFormat;
-    QTextCharFormat classFormat;
-    QTextCharFormat singleLineCommentFormat;
-    QTextCharFormat multiLineCommentFormat;
-    QTextCharFormat quotationFormat;
-    QTextCharFormat symbolFormat;
-    QTextCharFormat numberFormat;
-    QTextCharFormat keyFormat;
-    QTextCharFormat envvarFormat;
-    QTextCharFormat functionFormat;
-    QTextCharFormat punctuationFormat;
+    QTextCharFormat successFormat;
+    QTextCharFormat warningFormat;
+    QTextCharFormat errorFormat;
 
     QVector<HighlightingRule> customRules;
-    QVector<HighlightingRule> customCommentRules;
 };
 
 class QcPostView : public QPlainTextEdit, QcHelper
@@ -90,18 +73,11 @@ class QcPostView : public QPlainTextEdit, QcHelper
   Q_PROPERTY( QColor textColor READ dummyColor WRITE setTextColor );
   Q_PROPERTY( QString post WRITE post );
 
-  Q_PROPERTY( QColor builtinColor READ dummyColor WRITE setBuiltinColor );
-  Q_PROPERTY( QColor keywordColor READ dummyColor WRITE setKeywordColor );
-  Q_PROPERTY( QColor numberColor READ dummyColor WRITE setNumberColor );
-  Q_PROPERTY( QColor envvarColor READ dummyColor WRITE setEnvvarColor );
-  Q_PROPERTY( QColor symbolColor READ dummyColor WRITE setSymbolColor );
-  Q_PROPERTY( QColor methodColor READ dummyColor WRITE setMethodColor );
-  Q_PROPERTY( QColor classColor READ dummyColor WRITE setClassColor );
-  Q_PROPERTY( QColor punctuationColor READ dummyColor WRITE setPunctuationColor );
-  Q_PROPERTY( QColor stringColor READ dummyColor WRITE setStringColor );
-  Q_PROPERTY( QColor commentColor READ dummyColor WRITE setCommentColor );
+  Q_PROPERTY( QColor successColor READ dummyColor WRITE setSuccessColor );
+  Q_PROPERTY( QColor warningColor READ dummyColor WRITE setWarningColor );
+  Q_PROPERTY( QColor errorColor READ dummyColor WRITE setErrorColor );
+
   Q_PROPERTY( QVariantList userColor READ dummyVariantList WRITE setUserColor );
-  Q_PROPERTY( QVariantList userCommentColor READ dummyVariantList WRITE setUserCommentColor );
   Q_PROPERTY( QVariantList clearUserColors READ dummyVariantList WRITE clearUserColors );
 
 
@@ -115,18 +91,11 @@ class QcPostView : public QPlainTextEdit, QcHelper
     void setTextColor( const QColor & );
     void post ( const QString & );
 
-    void setBuiltinColor( const QColor & ); // for syntax hiliting
-    void setKeywordColor( const QColor & );
-    void setNumberColor( const QColor & );
-    void setEnvvarColor( const QColor & );
-    void setSymbolColor( const QColor & );
-    void setMethodColor( const QColor & );
-    void setClassColor( const QColor & );
-    void setPunctuationColor( const QColor & );
-    void setStringColor( const QColor & );
-    void setCommentColor( const QColor & );
+    void setSuccessColor( const QColor & ); // for syntax hiliting
+    void setWarningColor( const QColor & );
+    void setErrorColor( const QColor & );
+
     void setUserColor( const QVariantList & );
-    void setUserCommentColor( const QVariantList & );
     void clearUserColors( const QVariantList & );
 
   private:

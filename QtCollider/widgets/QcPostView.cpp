@@ -45,36 +45,10 @@ PostHighlighter::PostHighlighter(QTextDocument *parent)
     : QSyntaxHighlighter(parent)
 {
 
-  keywordFormat.setForeground(QColor(168, 28, 166));
-  keywordFormat.setFontWeight(QFont::Bold);
-
-  builtinFormat.setForeground(QColor(168, 28, 166));
-
-  numberFormat.setForeground(QColor(156, 109, 0));
-
-  envvarFormat.setForeground(QColor(230, 85, 68));
-
-  keyFormat.setForeground(QColor(0, 131, 190));
-
-  //functionFormat.setFontItalic(true);
-  functionFormat.setForeground(QColor(60, 116, 246));
-
+  errorFormat.setForeground(QColor(230, 85, 68));
   //classFormat.setFontWeight(QFont::Bold);
-  classFormat.setForeground(QColor(194, 133, 0));
-
-  punctuationFormat.setForeground(QColor(90, 108, 126));
-
-  quotationFormat.setForeground(QColor(77, 162, 75));
-
-  symbolFormat.setForeground(QColor(0, 131, 190));
-
-  singleLineCommentFormat.setForeground(QColor(160, 161, 167));
-  singleLineCommentFormat.setFontItalic(true);
-  multiLineCommentFormat.setForeground(QColor(160, 161, 167));
-  multiLineCommentFormat.setFontItalic(true);
-
-  commentStartExpression = QRegExp("/\\*");
-  commentEndExpression = QRegExp("\\*/");
+  warningFormat.setForeground(QColor(194, 133, 0));
+  successFormat.setForeground(QColor(77, 162, 75));
 
   buildRules();
 }
@@ -84,60 +58,16 @@ void PostHighlighter::buildRules()
   HighlightingRule rule;
   highlightingRules.clear();
 
-  QStringList keywordPatterns;
-  keywordPatterns << "\\bvar\\b" << "\\barg\\b" << "\\bthis\\b";
-  for (int i = 0; i < keywordPatterns.size(); i++) {
-    QString pattern = keywordPatterns.at(i);
-    rule.pattern = QRegExp(pattern);
-    rule.format = keywordFormat;
-    highlightingRules.append(rule);
-  }
-
-  QStringList builtinPatterns;
-  builtinPatterns << "\\bnil\\b" << "\\btrue\\b" << "\\binf\\b" << "\\bfalse\\b" << "\\bcurrentEnvironment\\b"
-                  << "\\btopEnvironment\\b" << "\\bthisProcess\\b" << "\\bthisThread\\b"
-                  << "\\bthisFunction\\b" << "\\bthisMethod\\b" << "\\bthisCuelist\\b";
-  for (int i = 0; i < builtinPatterns.size(); i++) {
-    QString pattern = builtinPatterns.at(i);
-    rule.pattern = QRegExp(pattern);
-    rule.format = builtinFormat;
-    highlightingRules.append(rule);
-  }
-
-  rule.pattern = QRegExp("\\~\\w+");
-  rule.format = envvarFormat;
+  rule.pattern = QRegExp("^\\->\\s.*$");
+  rule.format = successFormat;
   highlightingRules.append(rule);
 
-  rule.pattern = QRegExp("(\\w+):");
-  rule.format = keyFormat;
+  rule.pattern = QRegExp("^WARNING:\\s.*$");
+  rule.format = warningFormat;
   highlightingRules.append(rule);
 
-  rule.pattern = QRegExp("(\\.[a-z]\\w*)|(\\b[a-z]\\w*(?=(\\s*[\\(\\{])))");
-  rule.format = functionFormat;
-  highlightingRules.append(rule);
-
-  rule.pattern = QRegExp("\\b[A-Z]\\w*\\b");
-  rule.format = classFormat;
-  highlightingRules.append(rule);
-
-  rule.pattern = QRegExp("[<>\\&\\{\\}\\(\\)\\[\\]\\.\\,\\;:!\\=\\+\\-\\*\\/\\%\\|]");
-  rule.format = punctuationFormat;
-  highlightingRules.append(rule);
-
-  rule.pattern = QRegExp("(\\b|((\\s|^)\\-))((\\d+(\\.\\d+)?)|pi)\\b");
-  rule.format = numberFormat;
-  highlightingRules.append(rule);
-
-  rule.pattern = QRegExp("\"(?:[^\"\\\\]|\\\\.)*\"");
-  rule.format = quotationFormat;
-  highlightingRules.append(rule);
-
-  rule.pattern = QRegExp("\'.*\'|\\\\\\w+\\b");
-  rule.format = symbolFormat;
-  highlightingRules.append(rule);
-
-  rule.pattern = QRegExp("//[^\n]*");
-  rule.format = singleLineCommentFormat;
+  rule.pattern = QRegExp("^ERROR:\\s.*$");
+  rule.format = errorFormat;
   highlightingRules.append(rule);
 
   for (int i = 0; i < customRules.size(); i++) {
@@ -158,106 +88,25 @@ void PostHighlighter::highlightBlock(const QString &text)
       index = expression.indexIn(text, index + length);
     }
   }
-
-  setCurrentBlockState(0);
-
-  int startIndex = 0;
-  if (previousBlockState() != 1)
-    startIndex = commentStartExpression.indexIn(text);
-
-  while (startIndex >= 0) {
-    int endIndex = commentEndExpression.indexIn(text, startIndex);
-    int commentLength;
-    if (endIndex == -1) {
-      setCurrentBlockState(1);
-      commentLength = text.length() - startIndex;
-    } else {
-      commentLength = endIndex - startIndex
-                       + commentEndExpression.matchedLength();
-    }
-    setFormat(startIndex, commentLength, multiLineCommentFormat);
-
-    for (int i = 0; i < customCommentRules.size(); i++) {
-      HighlightingRule rule = customCommentRules.at(i);
-      QRegExp expression(rule.pattern);
-      int index = expression.indexIn(text, startIndex);
-      while (index >= 0 && (endIndex == -1 || index < endIndex)) {
-        int length = expression.matchedLength();
-        setFormat(index, length, rule.format);
-        index = expression.indexIn(text, index + length);
-      }
-    }
-
-    startIndex = commentStartExpression.indexIn(text, startIndex + commentLength);
-  }
 }
 
-void PostHighlighter::setBuiltinColor(const QColor &color)
+void PostHighlighter::setSuccessColor(const QColor &color)
 {
-  builtinFormat.setForeground(color);
+  successFormat.setForeground(color);
   buildRules();
   rehighlight();
 }
 
-void PostHighlighter::setKeywordColor(const QColor &color)
+void PostHighlighter::setWarningColor(const QColor &color)
 {
-  keywordFormat.setForeground(color);
+  warningFormat.setForeground(color);
   buildRules();
   rehighlight();
 }
 
-void PostHighlighter::setNumberColor(const QColor &color)
+void PostHighlighter::setErrorColor(const QColor &color)
 {
-  numberFormat.setForeground(color);
-  buildRules();
-  rehighlight();
-}
-
-void PostHighlighter::setEnvvarColor(const QColor &color)
-{
-  envvarFormat.setForeground(color);
-}
-
-void PostHighlighter::setSymbolColor(const QColor &color)
-{
-  keyFormat.setForeground(color);
-  symbolFormat.setForeground(color);
-  buildRules();
-  rehighlight();
-}
-
-void PostHighlighter::setMethodColor(const QColor &color)
-{
-  functionFormat.setForeground(color);
-  buildRules();
-  rehighlight();
-}
-
-void PostHighlighter::setClassColor(const QColor &color)
-{
-  classFormat.setForeground(color);
-  buildRules();
-  rehighlight();
-}
-
-void PostHighlighter::setPunctuationColor(const QColor &color)
-{
-  punctuationFormat.setForeground(color);
-  buildRules();
-  rehighlight();
-}
-
-void PostHighlighter::setStringColor(const QColor &color)
-{
-  quotationFormat.setForeground(color);
-  buildRules();
-  rehighlight();
-}
-
-void PostHighlighter::setCommentColor(const QColor &color)
-{
-  singleLineCommentFormat.setForeground(color);
-  multiLineCommentFormat.setForeground(color);
+  errorFormat.setForeground(color);
   buildRules();
   rehighlight();
 }
@@ -274,23 +123,9 @@ void PostHighlighter::setCustomColor(const QString &string, const QColor &color)
   rehighlight();
 }
 
-void PostHighlighter::setCustomCommentColor(const QString &string, const QColor &color)
-{
-  HighlightingRule rule;
-  QTextCharFormat format;
-  format.setForeground(color);
-  format.setFontItalic(true);
-  rule.pattern = QRegExp(string);
-  rule.format = format;
-  customCommentRules.append(rule);
-  buildRules();
-  rehighlight();
-}
-
 void PostHighlighter::clearCustomColors()
 {
   customRules.clear();
-  customCommentRules.clear();
   buildRules();
   rehighlight();
 }
@@ -299,12 +134,11 @@ void PostHighlighter::clearCustomColors()
 QcPostView::QcPostView()
 {
   setAttribute(Qt::WA_AcceptTouchEvents);
-  setMaximumBlockCount(5);
+  setMaximumBlockCount(100);
   setReadOnly(true);
+  setCursorWidth(2);
 
   highlighter = new PostHighlighter(document());
-
-  setCursorWidth(2);
 }
 
 int QcPostView::selectionStart() const
@@ -367,54 +201,19 @@ void QcPostView::post( const QString &string )
 }
 
 
-void QcPostView::setBuiltinColor( const QColor &color )
+void QcPostView::setSuccessColor( const QColor &color )
 {
-  highlighter->setBuiltinColor( color );
+  highlighter->setSuccessColor( color );
 }
 
-void QcPostView::setKeywordColor( const QColor &color )
+void QcPostView::setWarningColor( const QColor &color )
 {
-  highlighter->setKeywordColor( color );
+  highlighter->setWarningColor( color );
 }
 
-void QcPostView::setNumberColor( const QColor &color )
+void QcPostView::setErrorColor( const QColor &color )
 {
-  highlighter->setNumberColor( color );
-}
-
-void QcPostView::setEnvvarColor( const QColor &color )
-{
-  highlighter->setEnvvarColor( color );
-}
-
-void QcPostView::setSymbolColor( const QColor &color )
-{
-  highlighter->setSymbolColor( color );
-}
-
-void QcPostView::setMethodColor( const QColor &color )
-{
-  highlighter->setMethodColor( color );
-}
-
-void QcPostView::setClassColor( const QColor &color )
-{
-  highlighter->setClassColor( color );
-}
-
-void QcPostView::setPunctuationColor( const QColor &color )
-{
-  highlighter->setPunctuationColor( color );
-}
-
-void QcPostView::setStringColor( const QColor &color )
-{
-  highlighter->setStringColor( color );
-}
-
-void QcPostView::setCommentColor( const QColor &color )
-{
-  highlighter->setCommentColor( color );
+  highlighter->setErrorColor( color );
 }
 
 
@@ -426,29 +225,10 @@ void QcPostView::setUserColor( const QVariantList & list )
   highlighter->setCustomColor(regex, color);
 }
 
-void QcPostView::setUserCommentColor( const QVariantList & list )
-{
-  if (list.count() < 2) return;
-  QString regex = list[0].value<QString>();
-  QColor color = list[1].value<QColor>();
-  highlighter->setCustomCommentColor(regex, color);
-}
-
 void QcPostView::clearUserColors( const QVariantList & list )
 {
   highlighter->clearCustomColors();
 }
-
-/*
-void QcPostView::replaceSelectedText( const QString &string )
-{
-  QTextCursor cursor( textCursor() );
-  if( cursor.hasSelection() ) {
-    cursor.removeSelectedText();
-  };
-  cursor.insertText( string );
-}
-*/
 
 QString & QcPostView::prepareText( QString & text ) const
 {
