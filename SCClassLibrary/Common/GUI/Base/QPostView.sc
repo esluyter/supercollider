@@ -1,14 +1,27 @@
 PostViewNew : QAbstractScroll {
 	var <stringColor, <editable=true;
+	classvar <all;
 
 	*qtClass { ^'QcPostView' }
 
+	*post { |str|
+    all.do(_.post(str));
+  }
+  *postln { |str|
+    all.do(_.postln(str));
+  }
+
 	*new { |parent, bounds|
+		if (Quarks.isInstalled("ddwStatusBox")) {
+			"Installed quark ddwStatusBox conflicts with PostView extensions to String. Please pick one to use and uninstall the other.".warn;
+		};
     ^super.new(parent, bounds).init;
   }
 
 	init {
 		this.font_(Font.monospace);
+		all = all.add(this);
+		this.onClose_({ all.remove(this) });
 		^this;
 	}
 
@@ -22,6 +35,26 @@ PostViewNew : QAbstractScroll {
 
 	string_ { arg string;
 		this.setProperty( \plainText, string );
+	}
+
+	post { arg string;
+		this.setProperty(\post, string.asString);
+	}
+
+	postln { arg string;
+		this.setProperty(\post, string.asString ++ "\n");
+	}
+
+	clear {
+		this.setProperty(\plainText, "");
+	}
+
+	maximumBlockCount {
+		^this.getProperty(\maximumBlockCount);
+	}
+
+	maximumBlockCount_ { |count|
+		this.setProperty(\maximumBlockCount, count);
 	}
 
 	font_ { arg argFont;
