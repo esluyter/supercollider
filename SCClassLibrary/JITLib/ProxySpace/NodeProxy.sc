@@ -47,16 +47,19 @@ NodeProxy : BusPlug {
 	isPlaying { ^group.isPlaying }
 
 	free { | fadeTime, freeGroup = true |
-		var bundle;
+		var bundle, freetime;
 		var oldGroup = group;
 		if(this.isPlaying) {
 			bundle = MixedBundle.new;
-			if(fadeTime.notNil) { bundle.add([15, group.nodeID, "fadeTime", fadeTime]) };
+			if(fadeTime.notNil) {
+				bundle.add([15, group.nodeID, "fadeTime", fadeTime]) // n_set
+			};
 			this.stopAllToBundle(bundle, fadeTime);
 			if(freeGroup) {
 				oldGroup = group;
 				group = nil;
-				bundle.sched((fadeTime ? this.fadeTime) + (server.latency ? 0), { oldGroup.free });
+				freetime = (fadeTime ? this.fadeTime) + (server.latency ? 0) + 1e-9; // delay a tiny little
+				server.sendBundle(freetime, [11, oldGroup.nodeID]); // n_free
 			};
 			bundle.send(server);
 			this.changed(\free, [fadeTime, freeGroup]);
@@ -92,12 +95,15 @@ NodeProxy : BusPlug {
 	asNodeID { ^group.asNodeID }
 	nodeID { ^group.nodeID }
 
-	parentGroup_ { | node |
-		if(node.isPlaying.not) { "node not playing and registered: % \n".postf(node); ^this };
-		parentGroup = node;
-		if(group.isPlaying) { group.moveToHead(parentGroup) };
-	}
-
+ 	parentGroup_ { | node |
+		if(node.isPlaying.not) {
+			"% : cannot make non-playing node parentGroup: % \n"
+			.postf(thisMethod, node);
+			^this
+		};
+ 		parentGroup = node;
+ 		if(group.isPlaying) { group.moveToHead(parentGroup) };
+ 	}
 
 	// setting the source
 

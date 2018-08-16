@@ -1786,7 +1786,7 @@ void Pitch_Ctor(Pitch *unit)
 	int maxbins = (int)ZIN0(kPitchMaxBins);
 	unit->m_maxlog2bins = LOG2CEIL(maxbins);
 
-	unit->m_medianSize = sc_clip((int)ZIN0(0), 0, kMAXMEDIANSIZE);  // (int)ZIN0(kPitchMedian);
+	unit->m_medianSize = sc_clip((int)ZIN0(kPitchMedian), 0, kMAXMEDIANSIZE);
 	unit->m_ampthresh = ZIN0(kPitchAmpThreshold);
 	unit->m_peakthresh = ZIN0(kPitchPeakThreshold);
 
@@ -5680,6 +5680,15 @@ void PitchShift_Ctor(PitchShift *unit)
 	in = ZIN(0);
 	pchratio = ZIN0(2);
 	winsize = ZIN0(1);
+
+	// TODO: why does scsynth freeze if the window size is <= 2 samples?
+
+	// Nobody needs windows that small for pitch shifting anyway, so we will
+	// simply clamp the window size to 3.
+	float minimum_winsize = 3.f * SAMPLEDUR;
+	if (winsize < minimum_winsize) {
+		winsize = minimum_winsize;
+	}
 
 	delaybufsize = (long)ceil(winsize * SAMPLERATE * 3.f + 3.f);
 	fdelaylen = delaybufsize - 3;

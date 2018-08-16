@@ -31,6 +31,10 @@ WindowsPlatform : Platform {
 		"del %%.*meta%".format(34.asAscii, path, 34.asAscii).systemCmd;
 	}
 
+	killProcessByID { |pid|
+		("taskkill /F /pid " ++ pid).unixCmd;
+	}
+
 	killAll { |cmdLineArgs|
 		("taskkill /F /IM " ++ cmdLineArgs).unixCmd;
 	}
@@ -41,5 +45,12 @@ WindowsPlatform : Platform {
 		^if(File.exists(tmp)) { tmp }
 	}
 
-	myDocumentsDir { _WinPlatform_myDocumentsDir }
+	myDocumentsDir {
+		_WinPlatform_myDocumentsDir
+		^this.primitiveFailed
+	}
+
+	formatPathForCmdLine { |path|
+		^path.quote;
+	}
 }

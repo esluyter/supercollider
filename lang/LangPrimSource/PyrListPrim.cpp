@@ -45,6 +45,10 @@ PyrClass *class_identdict;
 PyrSymbol *s_proto, *s_parent;
 PyrSymbol *s_delta, *s_dur, *s_stretch;
 
+// used in prEvent_IsRest
+PyrSymbol *s_type, *s_rest, *s_empty, *s_r, *s_isRest;
+PyrClass *class_rest, *class_metarest;
+
 #define HASHSYMBOL(sym) (sym >> 5)
 
 #define ISKINDOF(obj, lo, hi)  (\
@@ -492,6 +496,8 @@ int prEvent_Delta(struct VMGlobals *g, int numArgsPushed)
 	PyrSlot *a, key, dur, stretch, delta;
 	double fdur, fstretch;
 	int err;
+	PyrClass *restClass = getsym("Rest")->u.classobj;
+	PyrSlot *slot;
 
 	a = g->sp;  // dict
 
@@ -499,31 +505,126 @@ int prEvent_Delta(struct VMGlobals *g, int numArgsPushed)
 	identDict_lookup(slotRawObject(a), &key, calcHash(&key), &delta);
 
 	if (NotNil(&delta)) {
-		slotCopy(a,&delta);
+		if (isKindOfSlot(&delta, restClass)) {
+			slot = slotRawObject(&delta)->slots;
+			err = slotDoubleVal(slot, &fdur);
+		} else {
+			err = slotDoubleVal(&delta, &fdur);
+		}
+		if (err) {
+			return err;
+		} else {
+			SetFloat(a, fdur);
+			return errNone;
+		}
 	} else {
 		SetSymbol(&key, s_dur);
 		identDict_lookup(slotRawObject(a), &key, calcHash(&key), &dur);
-
 		err = slotDoubleVal(&dur, &fdur);
 		if (err) {
-			if (NotNil(&dur)) return err;
-			SetNil(a);
-			return errNone;
+			if (IsNil(&dur)) {
+				SetNil(g->sp);
+				return errNone;
+			} else if (isKindOfSlot(&dur, restClass)) {
+				slot = slotRawObject(&dur)->slots;
+				err = slotDoubleVal(slot, &fdur);
+				if (err)
+					return err;
+			} else {
+				return errWrongType;
+			}
 		}
-
 		SetSymbol(&key, s_stretch);
 		identDict_lookup(slotRawObject(a), &key, calcHash(&key), &stretch);
 
 		err = slotDoubleVal(&stretch, &fstretch);
 		if (err) {
-			if (NotNil(&stretch)) return err;
-			SetFloat(a, fdur);
-			return errNone;
+			if (NotNil(&stretch)) {
+				if (isKindOfSlot(&stretch, restClass)) {
+					slot = slotRawObject(&stretch)->slots;
+					err = slotDoubleVal(slot, &fstretch);
+					if (err) return err;
+				} else {
+					return errWrongType;
+				}
+			} else {
+				SetFloat(a, fdur);
+				return errNone;
+			}
 		}
 
-		SetFloat(a, fdur * fstretch );
+		SetFloat(a, fdur * fstretch);
 	}
 
+	return errNone;
+}
+
+/// Returns whether the slot is considered a rest for \c Event.isRest.
+static bool slotIsRestlike(PyrSlot* slot)
+{
+	PyrSymbol * slotSym;
+	if (isKindOfSlot(slot, class_rest) || isKindOfSlot(slot, class_metarest)) {
+		return true;
+	} else if(!slotSymbolVal(slot, &slotSym)) {
+		return slotSym == s_empty
+			|| slotSym == s_r
+			|| slotSym == s_rest;
+	}
+	// why no 'else'?
+	// slotSymbolVal nonzero return = not a symbol;
+	// non-symbols don't indicate rests, so, ignore them.
+
+	return false;
+}
+
+/// Returns whether the dictionary has an entry with a 'restlike' value (see \c slotIsRestlike).
+static bool dictHasRestlikeValue(PyrObject* array)
+{
+	auto finalSlot = array->slots + array->size;
+
+	// odd-numered slots are values
+	for (auto slot = array->slots + 1; slot < finalSlot; slot += 2)
+		if (slotIsRestlike(slot))
+			return true;
+
+	return false;
+}
+
+int prEvent_IsRest(struct VMGlobals *g, int numArgsPushed);
+int prEvent_IsRest(struct VMGlobals *g, int numArgsPushed)
+{
+	PyrSlot *dictslots = slotRawObject(g->sp)->slots;
+	PyrSlot *arraySlot = dictslots + ivxIdentDict_array;
+	static int isRestCount = 0;
+
+	if (!isKindOfSlot(arraySlot, class_array)) {
+		return errWrongType;
+	}
+
+	PyrSlot key, typeSlot;
+	PyrSymbol *typeSym;
+	// easy tests first: 'this[\type] == \rest'
+	SetSymbol(&key, s_type);
+	identDict_lookup(slotRawObject(g->sp), &key, calcHash(&key), &typeSlot);
+	if(!slotSymbolVal(&typeSlot, &typeSym) && typeSym == s_rest) {
+		SetBool(g->sp, 1);
+		return errNone;
+	}
+
+	// and, 'this[\isRest] == true'
+	SetSymbol(&key, s_isRest);
+	identDict_lookup(slotRawObject(g->sp), &key, calcHash(&key), &typeSlot);
+	if(IsTrue(&typeSlot)) {
+		if (isRestCount == 0)
+			post("\nWARNING: Setting isRest to true in an event is deprecated. See the Rest helpfile for supported ways to specify rests.\n\n");
+		isRestCount = (isRestCount + 1) % 100;
+		SetBool(g->sp, 1);
+		return errNone;
+	}
+
+	// failing those, scan slot values for something rest-like
+	PyrObject *array = slotRawObject(arraySlot);
+	SetBool(g->sp, dictHasRestlikeValue(array) ? 1 : 0);
 	return errNone;
 }
 
@@ -735,6 +836,7 @@ void initListPrimitives()
 	definePrimitive(base, index++, "_PriorityQueuePostpone", prPriorityQueuePostpone, 2, 0);
 
 	definePrimitive(base, index++, "_Event_Delta", prEvent_Delta, 1, 0);
+	definePrimitive(base, index++, "_Event_IsRest", prEvent_IsRest, 1, 0);
 }
 
 void initPatterns();
@@ -762,4 +864,13 @@ void initPatterns()
 	s_dur = getsym("dur");
 	s_stretch = getsym("stretch");
 
+	// used in prEvent_IsRest
+	s_type = getsym("type");
+	s_rest = getsym("rest");
+	s_empty = getsym("");
+	s_r = getsym("r");
+	s_isRest = getsym("isRest");
+
+	class_rest = getsym("Rest")->u.classobj;
+	class_metarest = getsym("Meta_Rest")->u.classobj;
 }

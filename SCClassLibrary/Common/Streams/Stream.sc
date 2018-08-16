@@ -268,7 +268,7 @@ FuncStream : Stream {
 		^super.new.nextFunc_(nextFunc).resetFunc_(resetFunc).envir_(currentEnvironment)
 	}
 	next { arg inval;
-		^envir.use({ nextFunc.value(inval).processRest(inval) })
+		^envir.use({ nextFunc.value(inval) })
 	}
 	reset {
 		^envir.use({ resetFunc.value })
@@ -359,8 +359,12 @@ PauseStream : Stream {
 	}
 	reset { originalStream.reset }
 	stop {
+		var saveStream = this.stream;
 		this.prStop;
-		this.changed(\userStopped);
+ 		this.changed(\userStopped);
+		if(saveStream === thisThread) {
+			nil.alwaysYield
+		}
 	}
 	prStop {
 		stream = nil;
