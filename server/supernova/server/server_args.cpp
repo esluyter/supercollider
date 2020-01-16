@@ -27,13 +27,14 @@
 
 namespace nova {
 
-server_arguments::server_arguments(int argc, char * argv[])
-{
+server_arguments::server_arguments(int argc, char* argv[]) {
     using namespace boost::program_options;
     using namespace std;
 
     /* prepare options */
     options_description options("general options");
+
+    // clang-format off
     options.add_options()
         ("help,h", "show this help")
         ("udp-port,u", value<uint32_t>(&udp_port)->default_value(0), "udp port")
@@ -65,10 +66,16 @@ server_arguments::server_arguments(int argc, char * argv[])
         ("verbose,V", value<int16_t>(&verbosity)->default_value(0), "verbosity: 0 is normal behaviour\n-1 suppresses informational messages\n"
                                                             "-2 suppresses informational and many error messages, as well as\n"
                                                             "messages from Poll.")
-        ("ugen-search-path,U", value<vector<string> >(&ugen_paths), "a colon-separated list of paths\n"
-                                                                    "if -U is specified, the standard paths are NOT searched for plugins.")
+#ifdef _WIN32
+        ("ugen-search-path,U", value<vector<string> >(&ugen_paths), "A list of paths seperated by `;`.\n"
+                                                            "If specified, standard paths are NOT searched for plugins.\nMay be specified several times.")
+#else
+        ("ugen-search-path,U", value<vector<string> >(&ugen_paths), "A list of paths seperated by `:`.\n"
+                                                            "If specified, standard paths are NOT searched for plugins.\nMay be specified several times.")
+#endif
         ("restricted-path,P", value<vector<string> >(&restrict_paths), "if specified, prevents file-accessing OSC commands from accessing files outside <restricted-path>")
         ("threads,T", value<uint16_t>(&threads)->default_value(boost::thread::physical_concurrency()), "number of audio threads")
+        ("socket-address,B", value<string>()->default_value("127.0.0.1"), "reserved (not used)")
         ;
 
     options_description audio_options("audio options");
@@ -77,24 +84,18 @@ server_arguments::server_arguments(int argc, char * argv[])
         ("inchannels,i", value<uint16_t>(&input_channels)->default_value(8), "number of input channels")
         ("outchannels,o", value<uint16_t>(&output_channels)->default_value(8), "number of output channels")
         ;
+    // clang-format on
 
     options_description cmdline_options;
-    cmdline_options
-        .add(options)
-        .add(audio_options)
-        ;
+    cmdline_options.add(options).add(audio_options);
 
     /* parse options */
     boost::program_options::variables_map vm;
 
-    try
-    {
+    try {
         store(command_line_parser(argc, argv).options(cmdline_options).run(), vm);
-    }
-    catch(error const & e)
-    {
-        cout << "Error when parsing command line arguments:" << endl
-             << e.what() << endl << endl;
+    } catch (error const& e) {
+        cout << "Error when parsing command line arguments:" << endl << e.what() << endl << endl;
         std::exit(EXIT_FAILURE);
     };
 
@@ -111,9 +112,8 @@ server_arguments::server_arguments(int argc, char * argv[])
     non_rt = vm.count("nrt");
 
     if (non_rt) {
-        std::vector<std::string> const & nrt_options = vm["nrt"].as<std::vector<std::string> >();
-        if (nrt_options.size() != 6)
-        {
+        std::vector<std::string> const& nrt_options = vm["nrt"].as<std::vector<std::string>>();
+        if (nrt_options.size() != 6) {
             cout << "Error when parsing command line:" << endl;
             std::exit(EXIT_FAILURE);
         }
@@ -127,7 +127,7 @@ server_arguments::server_arguments(int argc, char * argv[])
     }
 
     if (vm.count("hardware-device-name"))
-        hw_name = vm["hardware-device-name"].as<std::vector<std::string> >();
+        hw_name = vm["hardware-device-name"].as<std::vector<std::string>>();
 }
 
 std::unique_ptr<server_arguments> server_arguments::instance_;

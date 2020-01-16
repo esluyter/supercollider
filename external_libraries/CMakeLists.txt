@@ -1,5 +1,5 @@
 if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/nova-simd/vec.hpp)
-	message(FATAL_ERROR "nova-simd submodule is missing: please run `git submodule init && git submodule update' from the toplevel of your git working tree")
+    message(FATAL_ERROR "It appears you haven't cloned this project's git submodules: please run `git submodule update --init --recursive` from the root level of the repository")
 endif()
 
 if(NOT Boost_FOUND) # we compile boost ourselves
@@ -25,6 +25,10 @@ if(NOT Boost_FOUND) # we compile boost ourselves
 	aux_source_directory(boost/libs/filesystem/src boost_filesystem_src)
 	add_library(boost_filesystem STATIC EXCLUDE_FROM_ALL ${boost_filesystem_src})
 	target_include_directories(boost_filesystem PUBLIC boost)
+
+	aux_source_directory(boost/libs/regex/src boost_regex_src)
+	add_library(boost_regex STATIC EXCLUDE_FROM_ALL ${boost_regex_src})
+	target_include_directories(boost_regex PUBLIC boost)
 
 	if(LTO)
 		set_property(TARGET boost_program_options boost_system boost_filesystem
@@ -61,7 +65,14 @@ if(NOT Boost_FOUND) # we compile boost ourselves
 			APPEND PROPERTY LINK_FLAGS "-flto -flto-report")
 	endif()
 
-	set_property( TARGET boost_thread boost_program_options boost_system boost_filesystem PROPERTY FOLDER 3rdparty )
+	set_property( TARGET
+        boost_regex
+        boost_thread
+        boost_program_options
+        boost_system
+        boost_filesystem
+        PROPERTY FOLDER 3rdparty
+    )
 
 endif()
 

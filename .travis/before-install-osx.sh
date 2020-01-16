@@ -1,16 +1,15 @@
 #!/bin/sh
 
-brew update
-brew tap homebrew/versions
-brew outdated cmake || brew upgrade cmake
+export HOMEBREW_NO_ANALYTICS=1
+
+brew install libsndfile || brew install libsndfile || exit 1
+brew install portaudio || exit 2
+brew install ccache || exit 3
+brew install qt5 || exit 4
+brew link qt5 --force || exit 5
 
 # according to https://docs.travis-ci.com/user/caching#ccache-cache
-brew install ccache
 export PATH="/usr/local/opt/ccache/libexec:$PATH"
-
-brew install libsndfile || true
-brew install qt55 || true
-brew link qt55 --force
 
 # To get less noise in xcode output
 gem install xcpretty

@@ -1,24 +1,49 @@
-cmake_minimum_required( VERSION 2.8.11 )
-
 # This makes sclang/scide work with a Qt installation at a fixed, non-system location.
 SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-find_package(Qt5Core)
-find_package(Qt5Concurrent)
-find_package(Qt5LinguistTools)
-find_package(Qt5OpenGL)
-find_package(Qt5Positioning)
-find_package(Qt5PrintSupport)
-find_package(Qt5Qml)
-find_package(Qt5Quick)
-find_package(Qt5Sensors)
-find_package(Qt5Sql)
-find_package(Qt5WebKitWidgets)
-find_package(Qt5Widgets)
+set(QT_IDE_COMPONENTS
+    Concurrent
+    Core
+    LinguistTools
+    # OpenGL
+    PrintSupport
+    Qml
+    Quick
+    Sql
+    Widgets
+)
 
 set(QT_IDE_LIBRARIES
-    Qt5::Core Qt5::Concurrent Qt5::WebKitWidgets Qt5::OpenGL Qt5::PrintSupport Qt5::Sensors Qt5::Quick Qt5::Qml Qt5::Sql Qt5::Positioning)
+    Qt5::Concurrent
+    Qt5::Core
+    # Qt5::OpenGL
+    Qt5::PrintSupport
+    Qt5::Qml
+    Qt5::Quick
+    Qt5::Sql
+)
+
+if(SC_USE_QTWEBENGINE)
+    list(APPEND QT_IDE_COMPONENTS
+        WebChannel
+        WebEngine
+        WebEngineWidgets
+        WebSockets
+    )
+    list(APPEND QT_IDE_LIBRARIES
+        Qt5::WebChannel
+        Qt5::WebEngineWidgets
+        Qt5::WebSockets
+    )
+endif()
+
+find_package(
+    Qt5 ${REQUIRED_QT_VERSION}
+    COMPONENTS
+    ${QT_IDE_COMPONENTS}
+    REQUIRED
+)
 
 if(${CMAKE_COMPILER_IS_GNUCXX})
     add_definitions(-Wreorder)
@@ -46,13 +71,11 @@ if(APPLE)
         set_source_files_properties(${file} PROPERTIES MACOSX_PACKAGE_LOCATION Resources/${PathInBundle})
     endforeach()
 
-    set( Icons ../../icons/SCcube.icns)
-    set_source_files_properties(../../icons/SCcube.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    set( Icons ../../icons/sc_ide.icns)
+    set_source_files_properties(../../icons/sc_ide.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
     set(AdditionalBundleSources ${ClassLibrary} ${HelpSource} ${BundleResources} ${Examples} ${Sounds} ${Icons})
 endif()
-
-
 
 set ( ide_moc_hdr
     core/main.hpp
@@ -76,7 +99,6 @@ set ( ide_moc_hdr
     widgets/session_switch_dialog.hpp
     widgets/sessions_dialog.hpp
     widgets/tool_box.hpp
-    widgets/help_browser.hpp
     widgets/audio_status_box.hpp
     widgets/lang_status_box.hpp
     widgets/code_editor/editor.hpp
@@ -98,14 +120,13 @@ set ( ide_moc_hdr
     widgets/util/color_widget.hpp
     widgets/util/docklet.hpp
     widgets/util/volume_widget.hpp
-
-    ${CMAKE_SOURCE_DIR}/QtCollider/widgets/web_page.hpp
 )
 
 file (GLOB_RECURSE all_hdr *hpp)
 
 set ( ide_src
     core/main.cpp
+    core/app_palette.cpp
     core/sig_mux.cpp
     core/doc_manager.cpp
     core/sc_process.cpp
@@ -115,7 +136,9 @@ set ( ide_src
     core/settings/serialization.cpp
     core/settings/manager.cpp
     core/settings/theme.cpp
+    core/settings/default_themes.cpp
     core/session_manager.cpp
+    core/util/color.cpp
     core/util/standard_dirs.cpp
     core/util/scdoc_log.cpp
     widgets/cmd_line.cpp
@@ -128,7 +151,6 @@ set ( ide_src
     widgets/multi_editor.cpp
     widgets/post_window.cpp
     widgets/session_switch_dialog.cpp
-    widgets/help_browser.cpp
     widgets/audio_status_box.cpp
     widgets/lang_status_box.cpp
     widgets/code_editor/editor.cpp
@@ -151,8 +173,6 @@ set ( ide_src
     widgets/util/status_box.cpp
     widgets/style/style.cpp
 
-    ${CMAKE_SOURCE_DIR}/QtCollider/widgets/web_page.cpp
-
     ${CMAKE_SOURCE_DIR}/common/SC_TextUtils.cpp
     ${CMAKE_SOURCE_DIR}/common/SC_Filesystem_macos.cpp
     ${CMAKE_SOURCE_DIR}/common/SC_Filesystem_win.cpp
@@ -166,6 +186,24 @@ set ( ide_src
     ${CMAKE_SOURCE_DIR}/SCDoc/SCDoc.tab.cpp
     ${CMAKE_SOURCE_DIR}/SCDoc/lex.scdoc.cpp
 )
+
+set(ide_webengine_moc_hdrs
+    widgets/help_browser.hpp
+    widgets/util/WebSocketTransport.hpp
+    widgets/util/WebSocketClientWrapper.hpp
+    widgets/util/IDEWebChannelWrapper.hpp
+    ${CMAKE_SOURCE_DIR}/QtCollider/widgets/web_page.hpp
+)
+set(ide_webengine_src
+    widgets/help_browser.cpp
+    widgets/util/WebSocketTransport.cpp
+    ${CMAKE_SOURCE_DIR}/QtCollider/widgets/web_page.cpp
+)
+
+if(SC_USE_QTWEBENGINE)
+    list(APPEND ide_moc_hdr ${ide_webengine_moc_hdrs})
+    list(APPEND ide_src ${ide_webengine_src})
+endif()
 
 set( ide_forms
     forms/settings_dialog.ui
@@ -316,6 +354,10 @@ if(LTO)
                  APPEND PROPERTY LINK_FLAGS "-flto -flto-report -fwhole-program")
 endif()
 
+if(SC_USE_QTWEBENGINE)
+    message(STATUS "IDE: Building with QtWebEngine")
+    target_compile_definitions(SuperCollider PUBLIC SC_USE_QTWEBENGINE)
+endif()
 
 # Installation
 
@@ -325,38 +367,16 @@ if(APPLE)
     endif()
 
     # set how it shows up in the Info.plist file
-    SET(MACOSX_BUNDLE_ICON_FILE ../../icons/SCcube.icns)
+    SET(MACOSX_BUNDLE_ICON_FILE ../../icons/sc_ide.icns)
+    # ensure copyright in plist file always says current year as end date
+    string(TIMESTAMP CURRENT_YEAR "%Y")
 
     install(TARGETS SuperCollider
-        DESTINATION ${scappbundlename}
-        )
+          DESTINATION ${scappbundlename})
 
     # for processing into the plist:
     set_property(TARGET SuperCollider
 	    PROPERTY MACOSX_BUNDLE_BUNDLE_NAME ${scappbundlename})
-
-    set(MACOSX_BUNDLE_BUNDLE_NAME "${scappbundlename}")
-
-    include(InstallRequiredSystemLibraries)
-
-    include(DeployQt5)
-    install_qt5_executable("${scappbundlename}/${scappbundlename}.app" "" "" "${CMAKE_BINARY_DIR}/lang/sclang;${CMAKE_BINARY_DIR}/server/scsynth;${CMAKE_BINARY_DIR}/external_libraries")
-
-    # install Qt plugins (adapted from kvirc)
-    set(plugin_dest_dir ${CMAKE_INSTALL_PREFIX}/SuperCollider/SuperCollider.app/Contents/Plugins)
-    set(QT_PLUGINS_DIR "${Qt5Widgets_DIR}/../../../plugins")
-    install(DIRECTORY "${QT_PLUGINS_DIR}/" DESTINATION ${plugin_dest_dir} COMPONENT Runtime
-                       FILES_MATCHING REGEX "(platforms)/[^_]*\\.dylib")
-
-    install(CODE "
-           file(GLOB_RECURSE QTPLUGINS
-                  \"${plugin_dest_dir}/*.dylib\")
-           file(GLOB_RECURSE SCPLUGINS
-                  \"${CMAKE_INSTALL_PREFIX}/SuperCollider/SuperCollider.app/Contents/Resources/plugins/*.scx\")
-                include(BundleUtilities)
-                fixup_bundle(\"${CMAKE_INSTALL_PREFIX}/SuperCollider/SuperCollider.app\" \"\${QTPLUGINS};\${SCPLUGINS}\" \"${QT_LIBRARY_DIR}\")
-                #fixup_qt5_executable(\"${CMAKE_INSTALL_PREFIX}/SuperCollider/SuperCollider.app\")
-                " COMPONENT Runtime)
 
 elseif(WIN32)
 
@@ -408,13 +428,15 @@ elseif(WIN32)
       list(APPEND SC_WIN_DLL_DIRS "${QT_BIN_PATH}")
     endif(QT_BIN_PATH)
 
-    include(DeployQt5)
-    install_qt5_executable(
-      "${SC_WIN_BUNDLE_NAME}/sclang.exe"
-      ""
-      ""
-      "${SC_WIN_DLL_DIRS}"
+    # run fixup_bundle prior to deployment to get FFTW, libsndfile, MSVC, and Qt libs
+    # will run windeployqt afterward to auto-deploy QtWebEngine dependencies
+    install(CODE
+        "
+            include(BundleUtilities)
+            fixup_bundle(\"${CMAKE_INSTALL_PREFIX}/${SC_WIN_BUNDLE_NAME}/sclang.exe\" \"\" \"${SC_WIN_DLL_DIRS}\")
+        "
     )
+
 
 else()
   install(TARGETS SuperCollider
@@ -422,6 +444,62 @@ else()
       PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
   install(FILES ${translations}
       DESTINATION "share/SuperCollider/translations")
+endif()
+
+# mac/windows: find the Qt deploy utility.
+# See https://doc.qt.io/qt-5/windows-deployment.html for windeployqt
+# See https://doc.qt.io/qt-5/osx-deployment.html for macdeployqt
+if(APPLE OR WIN32)
+    if(APPLE)
+        find_program(DEPLOY_PROG macdeployqt PATHS ${CMAKE_PREFIX_PATH} PATH_SUFFIXES bin)
+        # only the IDE executable is scanned normally, so force scanning of sclang as well
+        # to get QtWebEngine, libsndfile, and other libs. also force scanning of QtWebEngineProcess
+        # because macdeployqt is a fickle beast.
+        set(DEPLOY_CMD "\"${DEPLOY_PROG}\"
+                \"${CMAKE_INSTALL_PREFIX}/SuperCollider/SuperCollider.app\"
+                -verbose=1
+                -executable=${CMAKE_INSTALL_PREFIX}/SuperCollider/SuperCollider.app/Contents/MacOS/sclang
+                -executable=${CMAKE_INSTALL_PREFIX}/SuperCollider/SuperCollider.app/Contents/Resources/scsynth
+                -executable=${CMAKE_INSTALL_PREFIX}/SuperCollider/SuperCollider.app/Contents/Resources/supernova
+                -executable=${CMAKE_INSTALL_PREFIX}/SuperCollider/SuperCollider.app/Contents/Resources/plugins/DiskIO_UGens.scx
+                -executable=${CMAKE_INSTALL_PREFIX}/SuperCollider/SuperCollider.app/Contents/Resources/plugins/DiskIO_UGens_supernova.scx
+                -executable=${CMAKE_INSTALL_PREFIX}/SuperCollider/SuperCollider.app/Contents/Frameworks/QtWebEngineCore.framework/Versions/5/Helpers/QtWebEngineProcess.app/Contents/MacOS/QtWebEngineProcess
+            ")
+        set(VERIFY_CMD "include(BundleUtilities)
+            message(STATUS \"Verifying app\")
+            verify_app(\"${CMAKE_INSTALL_PREFIX}/SuperCollider/SuperCollider.app\")
+            ")
+    else() # WIN32
+        find_program(DEPLOY_PROG windeployqt PATHS ${CMAKE_PREFIX_PATH})
+        set(DEPLOY_CMD "\"${DEPLOY_PROG}\"
+                --verbose 1 --no-compiler-runtime
+                \"${CMAKE_INSTALL_PREFIX}/${SC_WIN_BUNDLE_NAME}/sclang.exe\"
+            ")
+        set(VERIFY_CMD "")
+    endif()
+
+    if(NOT DEPLOY_PROG)
+        message(FATAL_ERROR "Could not find macdeployqt executable. Please make sure it is in PATH or CMAKE_PREFIX_PATH/bin")
+    endif()
+
+    message(STATUS "Found Qt deploy utility: ${DEPLOY_PROG}")
+    install(CODE
+        "
+            message(STATUS \"Deploying additional Qt resources and libraries\")
+            execute_process(COMMAND ${DEPLOY_CMD}
+                RESULT_VARIABLE RES
+                OUTPUT_VARIABLE OUT
+                ERROR_VARIABLE ERR
+                )
+            if(OUT)
+                message(STATUS \"Deploy result: \${OUT}\")
+            endif()
+            if(RES)
+                message(FATAL_ERROR \"Deploy failed with error: \${ERR}\")
+            endif()
+            ${VERIFY_CMD}
+        "
+    )
 endif()
 
 if (LINUX)
