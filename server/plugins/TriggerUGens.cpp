@@ -1533,166 +1533,114 @@ void Sweep_next_aa(Sweep* unit, int inNumSamples) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+template <bool audioTrig, bool audioRate, bool audioStart, bool audioEnd, bool audioResetPos>
+void Phasor_next(Phasor* unit, int inNumSamples) {
+    float* out = OUT(0);
+    float* trigIn = IN(0);
+    float* rateIn = IN(1);
+    float* startIn = IN(2);
+    float* endIn = IN(3);
+    float* resetPosIn = IN(4);
+
+    float previn = unit->m_previn;
+    double level = unit->mLevel;
+
+    float curin, resetPos;
+    double rate, start, end;
+    if (!audioRate) {
+        rate = rateIn[0];
+    }
+    if (!audioStart) {
+        start = startIn[0];
+    }
+    if (!audioEnd) {
+        end = endIn[0];
+    }
+    if (!audioResetPos) {
+        resetPos = resetPosIn[0];
+    }
+    if (!audioTrig) {
+        curin = trigIn[0];
+        if (previn <= 0.f && curin > 0.f) {
+            level = resetPos;
+        }
+    }
+
+    for (int i = 0; i < inNumSamples; i++) {
+        if (audioRate) {
+            rate = rateIn[i];
+        }
+        if (audioStart) {
+            start = startIn[i];
+        }
+        if (audioEnd) {
+            end = endIn[i];
+        }
+        if (audioResetPos) {
+            resetPos = resetPosIn[i];
+        }
+        level = sc_wrap(level, start, end);
+        if (audioTrig) {
+            curin = trigIn[i];
+            if (previn <= 0.f && curin > 0.f) {
+                float frac = 1.f - previn / (curin - previn);
+                level = resetPos + frac * rate;
+            }
+        }
+        out[i] = level;
+        level += rate;
+        if (audioTrig) {
+            previn = curin;
+        }
+    }
+
+    unit->m_previn = curin;
+    unit->mLevel = level;
+}
+
+template <bool trig, bool rate, bool start, bool end, bool resetPos>
+force_inline void setCalcPhasor(Phasor* unit, bool audioTrig, bool audioRate, bool audioStart, bool audioEnd, bool audioResetPos) {
+
+    if (audioTrig == trig && audioRate == rate && audioStart == start && audioEnd == end && audioResetPos == resetPos) {
+        unit->mCalcFunc = (UnitCalcFunc)&Phasor_next<trig, rate, start, end, resetPos>;
+    }
+}
+
+template <int I = 0, bool trig = false, bool rate = false, bool start = false, bool end = false, bool resetPos = false>
+force_inline void permutePhasor(Phasor* unit, bool audioTrig, bool audioRate, bool audioStart, bool audioEnd, bool audioResetPos) {
+    if (I == 0) {
+        permutePhasor<1, true>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
+        permutePhasor<1, false>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
+    } else if (I == 1) {
+        permutePhasor<2, trig, true>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
+        permutePhasor<2, trig, false>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
+    } else if (I == 2) {
+        permutePhasor<3, trig, rate, true>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
+        permutePhasor<3, trig, rate, false>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
+    } else if (I == 3) {
+        permutePhasor<4, trig, rate, start, true>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
+        permutePhasor<4, trig, rate, start, false>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
+    } else if (I == 4) {
+        setCalcPhasor<trig, rate, start, end, true>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
+        setCalcPhasor<trig, rate, start, end, false>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
+    }
+}
+
 void Phasor_Ctor(Phasor* unit) {
     if (unit->mCalcRate == calc_FullRate) {
         bool audioTrig = (INRATE(0) == calc_FullRate);
-        bool audioRateArg = (INRATE(1) == calc_FullRate);
+        bool audioRate = (INRATE(1) == calc_FullRate);
+        bool audioStart = (INRATE(2) == calc_FullRate);
+        bool audioEnd = (INRATE(3) == calc_FullRate);
         bool audioResetPos = (INRATE(4) == calc_FullRate);
-        if (!audioTrig && !audioRateArg) {
-            SETCALC(Phasor_next_kkk);
-        } else if (!audioTrig && audioRateArg) {
-            SETCALC(Phasor_next_kak);
-        } else if (audioTrig && !audioRateArg && !audioResetPos) {
-            SETCALC(Phasor_next_akk);
-        } else if (audioTrig && !audioRateArg && audioResetPos) {
-            SETCALC(Phasor_next_aka);
-        } else if (audioTrig && audioRateArg && !audioResetPos) {
-            SETCALC(Phasor_next_aak);
-        } else {
-            SETCALC(Phasor_next_aaa);
-        }
+        permutePhasor(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
     } else {
-        SETCALC(Phasor_next_kkk);
+        // kr output, gets all kr inputs
+        unit->mCalcFunc = (UnitCalcFunc)&Phasor_next<false, false, false, false, false>;
     }
 
-    unit->m_previn = ZIN0(0);
-    ZOUT0(0) = unit->mLevel = ZIN0(2);
-}
-
-void Phasor_next_kkk(Phasor* unit, int inNumSamples) {
-    float* out = ZOUT(0);
-
-    float in = ZIN0(0);
-    double rate = ZIN0(1);
-    double start = ZIN0(2);
-    double end = ZIN0(3);
-    float resetPos = ZIN0(4);
-
-    float previn = unit->m_previn;
-    double level = unit->mLevel;
-
-    if (previn <= 0.f && in > 0.f) {
-        level = resetPos;
-    }
-    LOOP1(inNumSamples, level = sc_wrap(level, start, end); ZXP(out) = level; level += rate;);
-
-    unit->m_previn = in;
-    unit->mLevel = level;
-}
-
-void Phasor_next_akk(Phasor* unit, int inNumSamples) {
-    float* out = ZOUT(0);
-
-    float* in = ZIN(0);
-    double rate = ZIN0(1);
-    double start = ZIN0(2);
-    double end = ZIN0(3);
-    float resetPos = ZIN0(4);
-
-    float previn = unit->m_previn;
-    double level = unit->mLevel;
-
-    LOOP1(
-        inNumSamples, float curin = ZXP(in); if (previn <= 0.f && curin > 0.f) {
-            float frac = 1.f - previn / (curin - previn);
-            level = resetPos + frac * rate;
-        } ZXP(out) = level;
-        level += rate; level = sc_wrap(level, start, end);
-
-        previn = curin;);
-
-    unit->m_previn = previn;
-    unit->mLevel = level;
-}
-
-void Phasor_next_aak(Phasor* unit, int inNumSamples) {
-    float* out = ZOUT(0);
-    float* in = ZIN(0);
-    float* rate = ZIN(1);
-    double start = ZIN0(2);
-    double end = ZIN0(3);
-    float resetPos = ZIN0(4);
-
-    float previn = unit->m_previn;
-    double level = unit->mLevel;
-
-    LOOP1(
-        inNumSamples, float curin = ZXP(in); double zrate = ZXP(rate); if (previn <= 0.f && curin > 0.f) {
-            float frac = 1.f - previn / (curin - previn);
-            level = resetPos + frac * zrate;
-        } ZXP(out) = level;
-        level += zrate; level = sc_wrap(level, start, end); previn = curin;);
-
-    unit->m_previn = previn;
-    unit->mLevel = level;
-}
-
-void Phasor_next_kak(Phasor* unit, int inNumSamples) {
-    float* out = ZOUT(0);
-
-    float in = ZIN0(0);
-    float* rate = ZIN(1);
-    double start = ZIN0(2);
-    double end = ZIN0(3);
-    float resetPos = ZIN0(4);
-
-    float previn = unit->m_previn;
-    double level = unit->mLevel;
-
-    if (previn <= 0.f && in > 0.f) {
-        level = resetPos;
-    }
-    LOOP1(inNumSamples, double zrate = ZXP(rate); level = sc_wrap(level, start, end); ZXP(out) = level; level += zrate;);
-
-    unit->m_previn = in;
-    unit->mLevel = level;
-}
-
-void Phasor_next_aka(Phasor* unit, int inNumSamples) {
-    float* out = ZOUT(0);
-
-    float* in = ZIN(0);
-    double rate = ZIN0(1);
-    double start = ZIN0(2);
-    double end = ZIN0(3);
-    float* resetPos = ZIN(4);
-
-    float previn = unit->m_previn;
-    double level = unit->mLevel;
-
-    LOOP1(
-        inNumSamples, float curin = ZXP(in); float zresetPos = ZXP(resetPos); if (previn <= 0.f && curin > 0.f) {
-            float frac = 1.f - previn / (curin - previn);
-            level = zresetPos + frac * rate;
-        } ZXP(out) = level;
-        level += rate; level = sc_wrap(level, start, end);
-
-        previn = curin;);
-
-    unit->m_previn = previn;
-    unit->mLevel = level;
-}
-
-void Phasor_next_aaa(Phasor* unit, int inNumSamples) {
-    float* out = ZOUT(0);
-    float* in = ZIN(0);
-    float* rate = ZIN(1);
-    double start = ZIN0(2);
-    double end = ZIN0(3);
-    float* resetPos = ZIN(4);
-
-    float previn = unit->m_previn;
-    double level = unit->mLevel;
-
-    LOOP1(
-        inNumSamples, float curin = ZXP(in); float zresetPos = ZXP(resetPos); double zrate = ZXP(rate); if (previn <= 0.f && curin > 0.f) {
-            float frac = 1.f - previn / (curin - previn);
-            level = zresetPos + frac * zrate;
-        } ZXP(out) = level;
-        level += zrate; level = sc_wrap(level, start, end); previn = curin;);
-
-    unit->m_previn = previn;
-    unit->mLevel = level;
+    unit->m_previn = IN0(0);
+    OUT0(0) = unit->mLevel = IN0(2);
 }
 
 
