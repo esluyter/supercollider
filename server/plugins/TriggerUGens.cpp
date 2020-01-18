@@ -271,12 +271,6 @@ void Sweep_next_ak(Sweep* unit, int inNumSamples);
 void Sweep_next_aa(Sweep* unit, int inNumSamples);
 
 void Phasor_Ctor(Phasor* unit);
-void Phasor_next_kkk(Phasor* unit, int inNumSamples);
-void Phasor_next_kak(Phasor* unit, int inNumSamples);
-void Phasor_next_akk(Phasor* unit, int inNumSamples);
-void Phasor_next_aka(Phasor* unit, int inNumSamples);
-void Phasor_next_aak(Phasor* unit, int inNumSamples);
-void Phasor_next_aaa(Phasor* unit, int inNumSamples);
 
 void Peak_Ctor(Peak* unit);
 void Peak_next_ak(Peak* unit, int inNumSamples);
