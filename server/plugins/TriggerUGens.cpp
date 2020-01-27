@@ -23,6 +23,8 @@
 
 #include <algorithm> /* for std::min and std::max */
 
+#include <type_traits> /* used for template based construction */
+
 #include <boost/align/is_aligned.hpp>
 
 #include "simd_peakmeter.hpp"
@@ -1527,6 +1529,25 @@ void Sweep_next_aa(Sweep* unit, int inNumSamples) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+template <template<bool...> class Impl, bool... Bs>
+struct GenericSetCalc {
+    template<typename... Args>
+    static void permute(Args&&... args) {
+        Impl<Bs...>::func(std::forward<Args>(args)...);
+    }
+
+    template<typename... Args>
+    static void permute(bool b, Args&&... args) {
+        b ? GenericSetCalc<Impl, Bs..., true >::permute(std::forward<Args>(args)...)
+            : GenericSetCalc<Impl, Bs..., false>::permute(std::forward<Args>(args)...);
+    }
+};
+
+
+///////////////////////////////////
+
+
 template <bool audioTrig, bool audioRate, bool audioStart, bool audioEnd, bool audioResetPos>
 void Phasor_next(Phasor* unit, int inNumSamples) {
     float* out = OUT(0);
@@ -1593,32 +1614,12 @@ void Phasor_next(Phasor* unit, int inNumSamples) {
 }
 
 template <bool trig, bool rate, bool start, bool end, bool resetPos>
-force_inline void setCalcPhasor(Phasor* unit, bool audioTrig, bool audioRate, bool audioStart, bool audioEnd, bool audioResetPos) {
-
-    if (audioTrig == trig && audioRate == rate && audioStart == start && audioEnd == end && audioResetPos == resetPos) {
+struct setCalcPhasor {
+    static void func(Phasor* unit) {
         unit->mCalcFunc = (UnitCalcFunc)&Phasor_next<trig, rate, start, end, resetPos>;
     }
-}
+};
 
-template <int I = 0, bool trig = false, bool rate = false, bool start = false, bool end = false, bool resetPos = false>
-force_inline void permutePhasor(Phasor* unit, bool audioTrig, bool audioRate, bool audioStart, bool audioEnd, bool audioResetPos) {
-    if (I == 0) {
-        permutePhasor<1, true>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
-        permutePhasor<1, false>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
-    } else if (I == 1) {
-        permutePhasor<2, trig, true>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
-        permutePhasor<2, trig, false>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
-    } else if (I == 2) {
-        permutePhasor<3, trig, rate, true>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
-        permutePhasor<3, trig, rate, false>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
-    } else if (I == 3) {
-        permutePhasor<4, trig, rate, start, true>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
-        permutePhasor<4, trig, rate, start, false>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
-    } else if (I == 4) {
-        setCalcPhasor<trig, rate, start, end, true>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
-        setCalcPhasor<trig, rate, start, end, false>(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
-    }
-}
 
 void Phasor_Ctor(Phasor* unit) {
     if (unit->mCalcRate == calc_FullRate) {
@@ -1627,7 +1628,7 @@ void Phasor_Ctor(Phasor* unit) {
         bool audioStart = (INRATE(2) == calc_FullRate);
         bool audioEnd = (INRATE(3) == calc_FullRate);
         bool audioResetPos = (INRATE(4) == calc_FullRate);
-        permutePhasor(unit, audioTrig, audioRate, audioStart, audioEnd, audioResetPos);
+        GenericSetCalc<setCalcPhasor>::permute(audioTrig, audioRate, audioStart, audioEnd, audioResetPos, unit);
     } else {
         // kr output, gets all kr inputs
         unit->mCalcFunc = (UnitCalcFunc)&Phasor_next<false, false, false, false, false>;
